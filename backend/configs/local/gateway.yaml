@@ -1,0 +1,31 @@
+# Gateway 服务本地开发环境配置
+# 此配置文件包含 Nacos 连接信息，用于从 Nacos 配置中心获取完整配置
+
+nacos:
+  # Nacos 服务器配置
+  server_configs:
+    - ip_addr: "127.0.0.1"
+      port: 8848
+      context_path: "/nacos"
+      scheme: "http"
+  
+  # Nacos 客户端配置
+  client_config:
+    namespace_id: "public"
+    timeout_ms: 5000
+    not_load_cache_at_start: true
+    log_dir: "tmp/nacos/log"
+    cache_dir: "tmp/nacos/cache"
+    log_level: "info"
+    username: ""  # Nacos 用户名（如果启用了认证）
+    password: ""  # Nacos 密码（如果启用了认证）
+    access_key: ""  # 可选：阿里云访问密钥
+    secret_key: ""  # 可选：阿里云密钥
+  
+  # 配置中心配置
+  config_center:
+    enabled: true
+    data_id: "gateway-config"
+    group: "DEFAULT_GROUP"
+    namespace: "public"
+

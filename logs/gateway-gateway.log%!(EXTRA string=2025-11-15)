@@ -1,0 +1,1 @@
+{"caller":"main.go:main:99","fields":{"environment":"local","hostname":"","pod_name":""},"instance_id":"gateway","level":"INFO","message":"gateway 服务启动中","service":"gateway","service_id":"gateway","timestamp":"2025-11-15T23:51:42.310418+08:00"}

@@ -1,0 +1,26 @@
+2025-11-15T23:33:40.987+0800	[34mINFO[0m	clients/client_factory.go:47	logDir:<tmp/nacos/log>   cacheDir:<tmp/nacos/cache>
+2025-11-15T23:33:41.149+0800	[31mERROR[0m	nacos_server/nacos_server.go:199	api</v1/cs/configs>,method:<GET>, params:<{"dataId":"gateway-config","group":"DEFAULT_GROUP","tenant":"public"}>, call domain error:<[404] config data not exist
+> , result:<config data not exist
+>
+2025-11-15T23:33:41.155+0800	[31mERROR[0m	nacos_server/nacos_server.go:199	api</v1/cs/configs>,method:<GET>, params:<{"dataId":"gateway-config","group":"DEFAULT_GROUP","tenant":"public"}>, call domain error:<[404] config data not exist
+> , result:<config data not exist
+>
+2025-11-15T23:33:41.158+0800	[31mERROR[0m	nacos_server/nacos_server.go:199	api</v1/cs/configs>,method:<GET>, params:<{"dataId":"gateway-config","group":"DEFAULT_GROUP","tenant":"public"}>, call domain error:<[404] config data not exist
+> , result:<config data not exist
+>
+2025-11-15T23:33:41.158+0800	[31mERROR[0m	config_client/config_client.go:202	get config from server error:[404] config data not exist
+ 
+2025-11-15T23:33:41.158+0800	[33mWARN[0m	config_client/config_client.go:207	[client.GetConfig] config not found, dataId: gateway-config, group: DEFAULT_GROUP, namespaceId: public.
+2025-11-15T23:55:25.619+0800	[34mINFO[0m	clients/client_factory.go:47	logDir:<tmp/nacos/log>   cacheDir:<tmp/nacos/cache>
+2025-11-15T23:55:25.625+0800	[31mERROR[0m	nacos_server/nacos_server.go:199	api</v1/cs/configs>,method:<GET>, params:<{"dataId":"gateway-config","group":"DEFAULT_GROUP","tenant":"public"}>, call domain error:<[404] config data not exist
+> , result:<config data not exist
+>
+2025-11-15T23:55:25.634+0800	[31mERROR[0m	nacos_server/nacos_server.go:199	api</v1/cs/configs>,method:<GET>, params:<{"dataId":"gateway-config","group":"DEFAULT_GROUP","tenant":"public"}>, call domain error:<[404] config data not exist
+> , result:<config data not exist
+>
+2025-11-15T23:55:25.637+0800	[31mERROR[0m	nacos_server/nacos_server.go:199	api</v1/cs/configs>,method:<GET>, params:<{"dataId":"gateway-config","group":"DEFAULT_GROUP","tenant":"public"}>, call domain error:<[404] config data not exist
+> , result:<config data not exist
+>
+2025-11-15T23:55:25.637+0800	[31mERROR[0m	config_client/config_client.go:202	get config from server error:[404] config data not exist
+ 
+2025-11-15T23:55:25.637+0800	[33mWARN[0m	config_client/config_client.go:207	[client.GetConfig] config not found, dataId: gateway-config, group: DEFAULT_GROUP, namespaceId: public.
