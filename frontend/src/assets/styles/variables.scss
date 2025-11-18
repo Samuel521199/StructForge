@@ -1,0 +1,49 @@
+/**
+ * CSS 变量定义
+ */
+
+// 主色
+$primary-color: #409EFF;
+$success-color: #67C23A;
+$warning-color: #E6A23C;
+$danger-color: #F56C6C;
+$info-color: #909399;
+
+// 中性色
+$text-primary: #303133;
+$text-regular: #606266;
+$text-secondary: #909399;
+$text-placeholder: #C0C4CC;
+
+// 背景色
+$bg-primary: #FFFFFF;
+$bg-secondary: #F5F7FA;
+$bg-tertiary: #EBEEF5;
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// 字体
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 20px;
+$font-size-xxl: 24px;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 600;
+
+// 圆角
+$border-radius-sm: 2px;
+$border-radius-md: 4px;
+$border-radius-lg: 8px;
+$border-radius-xl: 12px;
+$border-radius-round: 50%;
+
