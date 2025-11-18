@@ -3,17 +3,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import type { CodeRainProps } from './types'
+import { loadConfig, mergeConfig, defaultConfig, type CodeRainConfig } from './config'
 
 // 日文片假名字符集（矩阵风格）
-const KATAKANA_CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789$%&*+-=[]{}|;:,.<>?/~`'
+const KATAKANA_CHARS = 'アァカサタナハマヤラワガザダバパ0123456789!@#$%^&*()_+-=[]{};:"|,./<>?'
 
 const props = withDefaults(defineProps<CodeRainProps>(), {
-  fontSize: 14,
-  fontFamily: 'monospace',
-  fontWeight: 'bold',
-  color: '#00ff41',
+  fontSize: 15,
+  fontFamily: 'Monospace',
+  fontWeight: 'normal',
+  color: '#00FF00',
   backgroundColor: '#000000',
   speed: 2.5,
   speedVariation: 0.6,
@@ -21,495 +22,239 @@ const props = withDefaults(defineProps<CodeRainProps>(), {
   opacity: 0.9,
   fadeSpeed: 0.04,
   characters: KATAKANA_CHARS,
-  minLength: 20,
-  maxLength: 40,
-  enableLayers: true,
+  minLength: 15,
+  maxLength: 35,
+  enableLayers: false,
   enableGlow: true,
-  enableGlitch: true,
+  enableGlitch: false,
   glowIntensity: 0.8,
+  configPath: undefined,
+  useConfigFile: false,
 })
 
+// 合并后的配置（优先级：props > 配置文件 > 默认值）
+const config = reactive<CodeRainConfig>({ ...defaultConfig })
+
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-let animationFrameId: number | null = null
+let animationFrameId: number = 0
 let canvas: HTMLCanvasElement | null = null
 let ctx: CanvasRenderingContext2D | null = null
 
-// 颜色脉冲状态
-let colorPulsePhase = 0
-let colorPulseSpeed = 0.002
+// 动态变量
+let canvasWidth: number = 0
+let canvasHeight: number = 0
+let columns: number = 0
+let drops: number[] = [] // 每列代码雨的 Y 坐标
+let columnXPositions: number[] = [] // 每列的 X 坐标
 
-// 屏幕抖动状态
-let glitchShakeX = 0
-let glitchShakeY = 0
-let glitchActive = false
-let glitchTimer = 0
+// 计算属性：从配置中获取常量
+const COLUMN_SPACING_FACTOR = () => config.columnSpacingFactor ?? 2.5
+const TRAIL_LENGTH = () => config.trailLength ?? 20
 
-// 代码雨滴类（支持分层）
-class CodeDrop {
-  x: number
-  y: number
-  length: number
-  speed: number
-  opacity: number
-  characters: string[]
-  layer: 'far' | 'mid' | 'near' // 所属层级
-  baseColor: string // 基础颜色
+/**
+ * 从字符集中随机获取一个字符
+ */
+const getRandomCharacter = (): string => {
+  const chars = config.characters ?? props.characters ?? KATAKANA_CHARS
+  return chars.charAt(Math.floor(Math.random() * chars.length))
+}
 
-  constructor(x: number, canvasHeight: number, layer: 'far' | 'mid' | 'near' = 'mid') {
-    this.x = x
-    // 让起始位置更分散：有些从屏幕上方很远开始，有些从屏幕中间开始
-    // 使用加权随机，让更多雨滴从不同位置开始
-    const startPosition = Math.random()
-    if (startPosition < 0.3) {
-      // 30% 从屏幕上方很远开始
-      this.y = Math.random() * -canvasHeight * 3 - canvasHeight
-    } else if (startPosition < 0.6) {
-      // 30% 从屏幕上方开始
-      this.y = Math.random() * -canvasHeight * 2
-    } else {
-      // 40% 从屏幕中间或上方开始（更自然）
-      this.y = Math.random() * -canvasHeight * 1.5
-    }
-    
-    this.layer = layer
-    // 增加长度随机性：有些很短，有些很长，使用加权随机
-    const lengthRandom = Math.random()
-    if (lengthRandom < 0.2) {
-      // 20% 很短
-      this.length = Math.floor(
-        Math.random() * (props.minLength * 0.5) + props.minLength * 0.3
-      )
-    } else if (lengthRandom < 0.5) {
-      // 30% 中等偏短
-      this.length = Math.floor(
-        Math.random() * (props.minLength * 0.8) + props.minLength * 0.5
-      )
-    } else if (lengthRandom < 0.8) {
-      // 30% 正常长度
-      this.length = Math.floor(
-        Math.random() * (props.maxLength - props.minLength) + props.minLength
-      )
-    } else {
-      // 20% 很长
-      this.length = Math.floor(
-        Math.random() * (props.maxLength * 1.5 - props.maxLength) + props.maxLength
-      )
-    }
-    // 确保长度至少为1
-    this.length = Math.max(1, this.length)
-    
-    // 根据层级调整速度
-    const baseSpeed = props.speed
-    const variation = props.speedVariation
-    let speedMultiplier = 1
-    
-    if (props.enableLayers) {
-      switch (layer) {
-        case 'far':
-          speedMultiplier = 0.4 // 远景慢
-          break
-        case 'mid':
-          speedMultiplier = 1.0 // 中景正常
-          break
-        case 'near':
-          speedMultiplier = 1.3 // 近景快
-          break
-      }
-    }
-    
-    const minSpeed = baseSpeed * speedMultiplier * (1 - variation)
-    const maxSpeed = baseSpeed * speedMultiplier * (1 + variation)
-    this.speed = Math.random() * (maxSpeed - minSpeed) + minSpeed
-    
-    // 根据层级调整透明度
-    if (props.enableLayers) {
-      switch (layer) {
-        case 'far':
-          this.opacity = Math.random() * 0.2 + 0.1 // 远景很淡
-          break
-        case 'mid':
-          this.opacity = Math.random() * 0.3 + 0.5 // 中景正常
-          break
-        case 'near':
-          this.opacity = Math.random() * 0.2 + 0.8 // 近景很亮
-          break
-      }
-    } else {
-      this.opacity = Math.random() * 0.5 + 0.5
-    }
-    
-    this.baseColor = props.color
-    this.characters = this.generateCharacters()
+/**
+ * 重新计算 Canvas 尺寸和代码雨列数
+ */
+const resizeCanvas = () => {
+  if (!canvas) return
+
+  // 设置 Canvas 实际像素尺寸（解决模糊问题）
+  const rect = canvas.getBoundingClientRect()
+  canvasWidth = canvas.width = rect.width
+  canvasHeight = canvas.height = rect.height
+
+  // 计算列数
+  const fontSize = config.fontSize ?? props.fontSize ?? 15
+  const spacing = fontSize * COLUMN_SPACING_FACTOR()
+  columns = Math.floor(canvasWidth / spacing)
+
+  // 初始化/重置 drops 数组
+  if (drops.length !== columns) {
+    drops = new Array(columns).fill(0).map(() =>
+      // 随机初始Y坐标，避免所有代码串同步
+      -Math.random() * canvasHeight * 0.8
+    )
+    columnXPositions = new Array(columns).fill(0).map((_, i) => i * spacing)
   }
+}
 
-  generateCharacters(): string[] {
-    const chars: string[] = []
-    const charSet = props.characters
-    for (let i = 0; i < this.length; i++) {
-      chars.push(
-        charSet[Math.floor(Math.random() * charSet.length)]
-      )
-    }
-    return chars
-  }
-  
-  // 更新字符，模拟数据流的混乱感
-  updateCharacters() {
-    // 每帧有 5-10% 的概率随机替换字符，模仿数据流的混乱感
-    if (Math.random() < 0.08) {
-      const changeCount = Math.floor(this.characters.length * 0.1)
-      for (let i = 0; i < changeCount; i++) {
-        const randomIndex = Math.floor(Math.random() * this.characters.length)
-        this.characters[randomIndex] = props.characters[
-          Math.floor(Math.random() * props.characters.length)
-        ]
-      }
-    }
-  }
+/**
+ * 核心渲染函数：每一帧的绘制逻辑
+ */
+const draw = () => {
+  if (!ctx || !canvas) return
 
-  update(canvasHeight: number) {
-    // 参考博客实现：简洁的下落逻辑
-    this.y += this.speed
-    
-    // 字符随机更新
-    this.updateCharacters()
-    
-    // 颜色脉冲效果（仅中景和近景）
-    if (props.enableGlitch && (this.layer === 'mid' || this.layer === 'near')) {
-      const pulse = Math.sin(colorPulsePhase + this.x * 0.01) * 0.1
-      // 轻微调整颜色亮度
-      this.baseColor = adjustColorBrightness(props.color, pulse)
-    }
-    
-    // 参考博客实现：当雨滴到达底部或随机重置时，重新开始
-    // 参考博客：value >= height || value > 8888 * Math.random() ? 0 : value + 10
-    if (this.y >= canvasHeight || this.y > 8888 * Math.random()) {
-      // 随机重置位置到屏幕上方，避免同步
-      this.y = -Math.random() * canvasHeight * 2
-      
-      // 重新随机长度（增加变化）
-      const lengthRandom = Math.random()
-      if (lengthRandom < 0.2) {
-        this.length = Math.floor(
-          Math.random() * (props.minLength * 0.5) + props.minLength * 0.3
-        )
-      } else if (lengthRandom < 0.5) {
-        this.length = Math.floor(
-          Math.random() * (props.minLength * 0.8) + props.minLength * 0.5
-        )
-      } else if (lengthRandom < 0.8) {
-        this.length = Math.floor(
-          Math.random() * (props.maxLength - props.minLength) + props.minLength
-        )
-      } else {
-        this.length = Math.floor(
-          Math.random() * (props.maxLength * 1.5 - props.maxLength) + props.maxLength
-        )
-      }
-      this.length = Math.max(1, this.length)
-      
-      this.characters = this.generateCharacters()
-      
-      // 重新随机透明度
-      if (props.enableLayers) {
-        switch (this.layer) {
-          case 'far':
-            this.opacity = Math.random() * 0.2 + 0.1
-            break
-          case 'mid':
-            this.opacity = Math.random() * 0.3 + 0.5
-            break
-          case 'near':
-            this.opacity = Math.random() * 0.2 + 0.8
-            break
-        }
-      } else {
-        this.opacity = Math.random() * 0.5 + 0.5
-      }
-    }
-  }
+  // 1. 残影清屏（电影级拖尾的关键）
+  // 极低透明度的黑色，创建字符的残影和拖尾效果
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.04)'
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-  draw(ctx: CanvasRenderingContext2D, fontSize: number, baseColor: string) {
-    const effectiveColor = this.baseColor || baseColor
-    
-    // 根据层级调整字体大小
-    let effectiveFontSize = fontSize
-    if (props.enableLayers) {
-      switch (this.layer) {
-        case 'far':
-          effectiveFontSize = fontSize * 0.6 // 远景小
-          break
-        case 'mid':
-          effectiveFontSize = fontSize // 中景正常
-          break
-        case 'near':
-          effectiveFontSize = fontSize * 1.2 // 近景大
-          break
-      }
-    }
-    
-    ctx.font = `${props.fontWeight} ${effectiveFontSize}px ${props.fontFamily}`
-    
-    // 绘制每个字符，实现光晕和渐变尾迹
-    this.characters.forEach((char, index) => {
-      const position = index / (this.characters.length - 1 || 1)
-      
-      // 渐变尾迹：快速 Alpha 衰减，营造数据流动的"模糊美"
-      // 使用更强的衰减曲线，让尾迹快速变透明
-      const fadeFactor = Math.pow(1 - position, 2.5)
-      // Alpha 从接近 0.8 快速衰减到接近 0，确保字符清晰可见
-      const charOpacity = this.opacity * (0.1 + fadeFactor * 0.7)
-      
-      // 领头字符（第一个）使用白色/极亮绿色，并添加强烈光晕
-      let charColor = effectiveColor
-      let shadowBlur = 0
-      let shadowColor = 'transparent'
-      
-      if (index === 0) {
-        // 领头字符：纯白色，全场最亮的点，像数据包的头部
-        charColor = '#FFFFFF'
-        if (props.enableGlow) {
-          // 强烈光晕，至少 25，营造霓虹灯效果
-          shadowBlur = Math.max(25, 25 * props.glowIntensity)
-          shadowColor = '#FFFFFF'
-        }
-        // 领头字符使用最高透明度
-        ctx.globalAlpha = this.opacity
-      } else {
-        // 后续字符：高饱和度、高亮度的绿色，确保清晰可见
-        // 使用 rgba 格式，alpha 随位置衰减
-        const greenIntensity = Math.floor(255 * fadeFactor)
-        const alpha = charOpacity
-        charColor = `rgba(0, ${greenIntensity}, 0, ${alpha})`
-        
-        if (props.enableGlow) {
-          // 尾迹光晕：5-8 的 shadowBlur，柔和的绿色光晕
-          shadowBlur = Math.max(5, Math.min(8, 8 * props.glowIntensity * fadeFactor))
-          shadowColor = '#00FF00'
-        }
-        ctx.globalAlpha = charOpacity
-      }
-      
-      // 应用光晕效果
-      if (props.enableGlow && shadowBlur > 0) {
-        ctx.shadowBlur = shadowBlur
-        ctx.shadowColor = shadowColor
+  // 禁用滤镜，以防上次渲染中启用了模糊
+  ctx.filter = 'none'
+
+  // 从配置中获取参数
+  const fontSize = config.fontSize ?? props.fontSize ?? 15
+  const fontWeight = config.fontWeight ?? props.fontWeight ?? 'normal'
+  const fontFamily = config.fontFamily ?? props.fontFamily ?? 'Monospace'
+  const opacity = config.opacity ?? props.opacity ?? 0.9
+  const enableGlow = config.enableGlow ?? props.enableGlow ?? true
+  const glowIntensity = config.glowIntensity ?? props.glowIntensity ?? 0.8
+  const speed = config.speed ?? props.speed ?? 2.5
+
+  // 设置基础字体样式
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+
+  // 遍历每一列的代码串
+  for (let i = 0; i < drops.length; i++) {
+    const x_pos = columnXPositions[i]
+    let y = drops[i]
+
+    // --- 2. 渲染尾迹（渐变 Alpha/Glow） ---
+    const trailLength = TRAIL_LENGTH()
+    for (let j = 1; j <= trailLength; j++) {
+      const charY = y - j * fontSize // 计算当前尾迹字符的 Y 位置
+
+      // 越远离头部 (j越大)，透明度越低，颜色越深
+      const alpha = opacity * 0.7 * (1 - j / trailLength)
+
+      // 尾迹颜色：柔和的绿色
+      ctx.fillStyle = `rgba(0, 255, 0, ${alpha})`
+
+      if (enableGlow) {
+        ctx.shadowColor = '#00FF00'
+        ctx.shadowBlur = 4 * glowIntensity // 较弱的光晕
       } else {
         ctx.shadowBlur = 0
         ctx.shadowColor = 'transparent'
       }
-      
-      ctx.fillStyle = charColor
-      
-      // 增大字符间距（Y轴）：至少是字体大小的 1.2 倍，确保字符独立可见
-      const charSpacing = effectiveFontSize * 1.2
-      ctx.fillText(
-        char,
-        this.x,
-        this.y + index * charSpacing
-      )
-    })
-    
-    // 重置全局状态
-    ctx.globalAlpha = 1
+
+      // 随机获取字符
+      const text = getRandomCharacter()
+      ctx.fillText(text, x_pos, charY)
+    }
+
+    // --- 3. 渲染领头字符（最强发光头） ---
+    // 领头字符的颜色和光晕设置
+    ctx.fillStyle = '#FFFFFF' // 纯白高光
+
+    if (enableGlow) {
+      ctx.shadowColor = '#FFFFFF' // 白色光晕
+      ctx.shadowBlur = 20 * glowIntensity // 强大的发光效果（电影感核心）
+    } else {
+      ctx.shadowBlur = 0
+      ctx.shadowColor = 'transparent'
+    }
+
+    // 随机获取字符
+    const leaderText = getRandomCharacter()
+    ctx.fillText(leaderText, x_pos, y)
+
+    // 重置阴影
     ctx.shadowBlur = 0
     ctx.shadowColor = 'transparent'
-  }
-}
 
-// 调整颜色亮度的辅助函数
-function adjustColorBrightness(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16)
-  const r = Math.max(0, Math.min(255, ((num >> 16) & 0xff) + amount * 255))
-  const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + amount * 255))
-  const b = Math.max(0, Math.min(255, (num & 0xff) + amount * 255))
-  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`
+    // --- 4. 更新 Y 坐标和重置 ---
+    // 每列的速度可以随机，这里使用基础速度
+    const dropSpeed = speed * fontSize * 0.8
+    drops[i] += dropSpeed
+
+    // 如果代码串落到底部，随机重置到屏幕外顶部
+    if (y > canvasHeight && Math.random() > 0.95) {
+      drops[i] = -Math.random() * canvasHeight
+    }
+  }
+
+  // 循环调用
+  animationFrameId = requestAnimationFrame(draw)
 }
 
 // 初始化画布
-const initCanvas = () => {
+const initCanvas = async () => {
   if (!canvasRef.value) return
+
+  // 如果启用配置文件，先加载配置
+  if (props.useConfigFile) {
+    try {
+      const fileConfig = await loadConfig(props.configPath)
+      
+      // 当使用配置文件时，过滤掉 props 中的默认值，让配置文件的值生效
+      // 只有当 props 中显式传递了不同的值时，才使用 props 的值
+      const filteredProps: Partial<CodeRainConfig> = {}
+      
+      // 对于 characters：如果等于默认值，则不使用（让配置文件的值生效）
+      if (props.characters && props.characters !== KATAKANA_CHARS) {
+        filteredProps.characters = props.characters
+      }
+      
+      // 对于其他属性：如果值不等于默认值，则认为是显式传递的
+      if (props.fontSize !== 15) filteredProps.fontSize = props.fontSize
+      if (props.speed !== 2.5) filteredProps.speed = props.speed
+      if (props.speedVariation !== 0.6) filteredProps.speedVariation = props.speedVariation
+      if (props.density !== 0.008) filteredProps.density = props.density
+      if (props.opacity !== 0.9) filteredProps.opacity = props.opacity
+      if (props.fadeSpeed !== 0.04) filteredProps.fadeSpeed = props.fadeSpeed
+      if (props.glowIntensity !== 0.8) filteredProps.glowIntensity = props.glowIntensity
+      if (props.fontFamily !== 'Monospace') filteredProps.fontFamily = props.fontFamily
+      if (props.fontWeight !== 'normal') filteredProps.fontWeight = props.fontWeight
+      if (props.color !== '#00FF00') filteredProps.color = props.color
+      if (props.backgroundColor !== '#000000') filteredProps.backgroundColor = props.backgroundColor
+      if (props.minLength !== 15) filteredProps.minLength = props.minLength
+      if (props.maxLength !== 35) filteredProps.maxLength = props.maxLength
+      if (props.enableLayers !== false) filteredProps.enableLayers = props.enableLayers
+      if (props.enableGlow !== true) filteredProps.enableGlow = props.enableGlow
+      if (props.enableGlitch !== false) filteredProps.enableGlitch = props.enableGlitch
+      
+      // 合并配置（优先级：显式传递的 props > 配置文件 > 默认值）
+      const mergedConfig = mergeConfig(filteredProps, fileConfig, defaultConfig)
+      Object.assign(config, mergedConfig)
+      
+      // 调试：输出加载的配置（仅开发环境）
+      if (import.meta.env.DEV) {
+        console.log('[CodeRain] 配置加载完成:', {
+          characters: config.characters?.substring(0, 30) + '...',
+          charactersLength: config.characters?.length,
+          fromFile: fileConfig.characters?.substring(0, 30) + '...',
+          fromProps: props.characters?.substring(0, 30) + '...',
+          isDefaultChars: props.characters === KATAKANA_CHARS,
+          speed: config.speed,
+          fontSize: config.fontSize
+        })
+      }
+    } catch (error) {
+      console.warn('[CodeRain] 配置文件加载失败，使用 props 和默认值:', error)
+      // 如果配置文件加载失败，使用 props 和默认值
+      Object.assign(config, mergeConfig(props, defaultConfig, defaultConfig))
+    }
+  } else {
+    // 不使用配置文件，直接使用 props 和默认值
+    Object.assign(config, mergeConfig(props, defaultConfig, defaultConfig))
+  }
 
   canvas = canvasRef.value
   ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  // 创建代码雨滴的函数（支持分层）
-  const createDrops = (): CodeDrop[] => {
-    if (!canvas) return []
-    
-    const drops: CodeDrop[] = []
-    // 参考博客实现：固定列间距，简洁高效
-    // 列间距约为字体大小的倍数，确保有足够的留白
-    const columnWidth = props.fontSize * 1.2
-    const columnCount = Math.ceil(canvas.width / columnWidth)
-    // 根据密度计算实际列数，确保分布均匀
-    const activeColumnCount = Math.max(1, Math.floor(columnCount * props.density * 100))
-    
-    // 参考博客实现：固定列间距分布，简洁高效
-    // 创建固定间距的列，类似博客中的 index * 10 方式
-    // 参考博客：arr = Array(Math.ceil(width / 10)).fill(0)
-    const availableColumns: number[] = []
-    for (let i = 0; i < columnCount; i++) {
-      availableColumns.push(i)
-    }
-    
-    // 辅助函数：创建指定层的雨滴
-    const createLayerDrops = (count: number, layer: 'far' | 'mid' | 'near') => {
-      const layerDrops: CodeDrop[] = []
-      if (!canvas) return layerDrops
-      
-      // 随机打乱可用列
-      const shuffledColumns = [...availableColumns].sort(() => Math.random() - 0.5)
-      
-      // 选择前 count 个列
-      for (let i = 0; i < Math.min(count, shuffledColumns.length); i++) {
-        const columnIndex = shuffledColumns[i]
-        const x = columnIndex * columnWidth
-        layerDrops.push(new CodeDrop(x, canvas.height, layer))
-      }
-      
-      return layerDrops
-    }
-    
-    // 如果启用分层，按比例分配各层
-    if (props.enableLayers) {
-      const farCount = Math.floor(activeColumnCount * 0.3) // 30% 远景
-      const midCount = Math.floor(activeColumnCount * 0.5) // 50% 中景
-      const nearCount = activeColumnCount - farCount - midCount // 剩余 近景
-      
-      // 各层均匀分布（允许列重叠，创造深度感）
-      drops.push(...createLayerDrops(farCount, 'far'))
-      drops.push(...createLayerDrops(midCount, 'mid'))
-      drops.push(...createLayerDrops(nearCount, 'near'))
-    } else {
-      // 不启用分层，创建所有雨滴
-      drops.push(...createLayerDrops(activeColumnCount, 'mid'))
-    }
-    
-    return drops
-  }
-
-  let drops: CodeDrop[] = []
-  
-  const resizeCanvas = () => {
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    canvas.width = rect.width || canvas.offsetWidth || window.innerWidth
-    canvas.height = rect.height || canvas.offsetHeight || window.innerHeight
-    drops = createDrops()
-  }
-
   resizeCanvas()
   window.addEventListener('resize', resizeCanvas)
-  
-  drops = createDrops()
 
-  // 动画循环
-  let frameCount = 0
-  const animate = () => {
-    if (!ctx || !canvas) return
-
-    const canvasWidth = canvas.width
-    const canvasHeight = canvas.height
-
-    // 更新颜色脉冲
-    if (props.enableGlitch) {
-      colorPulsePhase += colorPulseSpeed
-    }
-
-    // 屏幕抖动效果（周期性触发）
-    if (props.enableGlitch) {
-      glitchTimer++
-      // 每 300-600 帧（约 5-10 秒）触发一次抖动
-      if (glitchTimer > 300 + Math.random() * 300 && !glitchActive) {
-        glitchActive = true
-        glitchTimer = 0
-      }
-      
-      if (glitchActive) {
-        // 抖动持续 10-20 帧
-        if (glitchTimer < 15) {
-          glitchShakeX = (Math.random() - 0.5) * 2 // ±1 像素
-          glitchShakeY = (Math.random() - 0.5) * 2
-        } else {
-          glitchActive = false
-          glitchShakeX = 0
-          glitchShakeY = 0
-          glitchTimer = 0
-        }
-      }
-    }
-
-    // 保存上下文状态
-    ctx.save()
-    
-    // 应用抖动偏移
-    if (props.enableGlitch && glitchActive) {
-      ctx.translate(glitchShakeX, glitchShakeY)
-    }
-
-    // 参考博客实现：残影效果，使用 rgba(0,0,0,0.05) 创建拖尾
-    // 这是实现流动感和拖影的关键！
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-    
-    // 禁用滤镜，确保清晰
-    ctx.filter = 'none'
-
-    // 如果启用分层，按层级顺序绘制（远景 -> 中景 -> 近景）
-    if (props.enableLayers) {
-      // 远景层（先绘制，在底层）
-      drops.filter(d => d.layer === 'far').forEach((drop) => {
-        drop.update(canvasHeight)
-        drop.draw(ctx!, props.fontSize, props.color)
-      })
-      
-      // 中景层
-      drops.filter(d => d.layer === 'mid').forEach((drop) => {
-        drop.update(canvasHeight)
-        drop.draw(ctx!, props.fontSize, props.color)
-      })
-      
-      // 近景层（最后绘制，在顶层）
-      drops.filter(d => d.layer === 'near').forEach((drop) => {
-        drop.update(canvasHeight)
-        drop.draw(ctx!, props.fontSize, props.color)
-      })
-    } else {
-      // 不启用分层，正常绘制
-      drops.forEach((drop) => {
-        drop.update(canvasHeight)
-        drop.draw(ctx!, props.fontSize, props.color)
-      })
-    }
-
-    // 恢复上下文状态
-    ctx.restore()
-
-    frameCount++
-    animationFrameId = requestAnimationFrame(animate)
-  }
-
-  animate()
-
-  // 清理函数
-  return () => {
-    window.removeEventListener('resize', resizeCanvas)
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId)
-    }
-  }
+  // 开始渲染循环
+  draw()
 }
 
 onMounted(() => {
-  const cleanup = initCanvas()
-  onUnmounted(() => {
-    if (cleanup) cleanup()
-  })
+  initCanvas()
 })
 
 onUnmounted(() => {
+  // 清理资源，避免内存泄漏
+  window.removeEventListener('resize', resizeCanvas)
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
   }
@@ -518,14 +263,15 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .code-rain-canvas {
-  position: fixed;
+  /* 关键：确保 Canvas 覆盖整个视口，并在内容下方 */
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: 1; /* 比 z-index 为 10 的登录框低 */
+  background-color: #000; /* 确保背景是纯黑，提高对比度 */
   pointer-events: none;
   display: block;
-  background: #000000;
 }
 </style>

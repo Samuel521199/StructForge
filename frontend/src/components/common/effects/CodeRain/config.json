@@ -1,0 +1,58 @@
+{
+  "codeRain": {
+    "_comment": "========== 字体相关参数 ==========",
+    "fontSize": 25,
+    "_comment_fontSize": "字体大小（像素），建议范围：12-20",
+    "fontFamily": "Monospace",
+    "_comment_fontFamily": "字体族，建议使用等宽字体：Monospace, Courier, Consolas",
+    "fontWeight": "normal",
+    "_comment_fontWeight": "字体粗细：normal, bold, 100-900",
+    
+    "_comment_color": "========== 颜色相关参数 ==========",
+    "color": "#00FF00",
+    "_comment_color_value": "代码颜色（十六进制），矩阵风格建议使用 #00FF00",
+    "backgroundColor": "#000000",
+    "_comment_backgroundColor": "背景颜色（十六进制），建议使用纯黑 #000000",
+    
+    "_comment_motion": "========== 运动相关参数 ==========",
+    "speed": 0.3,
+    "_comment_speed": "下落速度（像素/帧），值越大速度越快，建议范围：1.0-5.0",
+    "speedVariation": 1,
+    "_comment_speedVariation": "速度变化范围（0-1），值越大速度差异越大，建议范围：0.3-0.8",
+    
+    "_comment_density": "========== 密度相关参数 ==========",
+    "density": 0.001,
+    "_comment_density_value": "雨滴密度（0-1），值越大密度越高，建议范围：0.003-0.015。注意：密度过高会导致性能问题和视觉混乱",
+    "columnSpacingFactor": 2,
+    "_comment_columnSpacingFactor": "列间距因子，值越大列间距越大，建议范围：2.0-3.5。计算公式：列间距 = fontSize * columnSpacingFactor",
+    
+    "_comment_visual": "========== 视觉效果参数 ==========",
+    "opacity": 0.9,
+    "_comment_opacity": "透明度（0-1），值越大越不透明，建议范围：0.7-1.0",
+    "fadeSpeed": 0.04,
+    "_comment_fadeSpeed": "拖尾淡出速度（0-1），值越大淡出越快，建议范围：0.03-0.1。注意：此参数影响残影效果，值太小会导致拖尾过长",
+    "glowIntensity": 0.8,
+    "_comment_glowIntensity": "光晕强度（0-1），值越大光晕越强，建议范围：0.5-1.0",
+    
+    "_comment_length": "========== 长度相关参数 ==========",
+    "minLength": 10,
+    "_comment_minLength": "代码串最小长度（字符数），建议范围：10-20",
+    "maxLength": 35,
+    "_comment_maxLength": "代码串最大长度（字符数），建议范围：25-40",
+    "trailLength": 10,
+    "_comment_trailLength": "尾迹长度（字符数），值越大拖尾越长，建议范围：15-30。注意：尾迹长度影响性能和视觉效果",
+    
+    "_comment_features": "========== 功能开关 ==========",
+    "enableLayers": false,
+    "_comment_enableLayers": "是否启用三层深度效果（远景、中景、近景）。true: 启用分层，增加视觉深度但性能开销更大；false: 单层效果，性能更好",
+    "enableGlow": true,
+    "_comment_enableGlow": "是否启用光晕效果（霓虹灯发光效果）。true: 启用光晕，视觉效果更佳但性能开销稍大；false: 禁用光晕，性能更好但视觉效果较平淡",
+    "enableGlitch": false,
+    "_comment_enableGlitch": "是否启用动态干扰（屏幕抖动、颜色脉冲）。true: 启用干扰效果，增加电影感；false: 禁用干扰效果，更稳定",
+    
+    "_comment_chars": "========== 字符集 ==========，アァカサタナハマヤラワガザダバパ0123456789",
+    "characters": "YANYINGJIEASDFGVBNM0QZPKLUTREWAY",
+    "_comment_characters": "字符集，用于代码雨显示的字符。默认使用日文片假名，可自定义为任意字符。示例：日文片假名、数字0123456789、符号!@#$%^&*()_+-=[]{};:\"|,./<>?、二进制01"
+  }
+}
+

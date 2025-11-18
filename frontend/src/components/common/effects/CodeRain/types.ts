@@ -37,6 +37,10 @@ export interface CodeRainProps {
   enableGlitch?: boolean
   /** 光晕强度（0-1） */
   glowIntensity?: number
+  /** 配置文件路径（可选，如果提供则从配置文件加载参数） */
+  configPath?: string
+  /** 是否使用配置文件（默认 false，使用 props） */
+  useConfigFile?: boolean
 }
 
 export interface CodeRainEmits {

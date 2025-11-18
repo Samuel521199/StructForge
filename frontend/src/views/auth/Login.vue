@@ -1,21 +1,15 @@
 <template>
   <div class="login-page">
+    <!-- 
+      使用配置文件：修改 config.json 文件即可调整效果参数
+      配置文件位置：frontend/src/components/common/effects/CodeRain/config.json
+      修改配置文件后，需要刷新页面才能看到效果变化
+      
+      如果需要覆盖配置文件中的特定参数，可以添加 props：
+      <CodeRain :useConfigFile="true" :speed="3.0" :glowIntensity="0.9" />
+    -->
     <CodeRain
-      :color="'#00FF00'"
-      :backgroundColor="'#000000'"
-      :fontSize="14"
-      :fontWeight="'bold'"
-      :speed="2.5"
-      :speedVariation="0.6"
-      :density="0.003"
-      :opacity="0.85"
-      :fadeSpeed="0.08"
-      :minLength="15"
-      :maxLength="35"
-      :enableLayers="true"
-      :enableGlow="true"
-      :enableGlitch="true"
-      :glowIntensity="0.4"
+      :useConfigFile="true"
     />
     <div class="login-container">
       <div class="login-header">
@@ -163,13 +157,16 @@ const goToRegister = () => {
 }
 
 .login-container {
+  /* 确保在 Canvas 之上 */
   position: relative;
-  z-index: 2;
+  z-index: 10; /* 高于 Canvas 的 z-index: 1 */
   width: 100%;
   max-width: 400px;
-  background-color: rgba(0, 0, 0, 0.8);
+  /* 登录框主体背景微透明，让代码雨的光影透过来 */
+  background-color: rgba(0, 0, 0, 0.85);
   border: 1px solid rgba(0, 255, 0, 0.3);
   border-radius: 8px;
+  /* 增加绿色光晕，与代码雨主题呼应 */
   box-shadow: 
     0 0 40px rgba(0, 255, 0, 0.5),
     inset 0 0 10px rgba(0, 255, 0, 0.2);
