@@ -13,6 +13,9 @@ export { Form } from './Form'
 export { Card } from './Card'
 export { Loading } from './Loading'
 export { Empty } from './Empty'
+export { Checkbox } from './Checkbox'
+export { Link } from './Link'
+export { Icon } from './Icon'
 export * as Message from './Message'
 
 // 表单组件（重新导出以便从 base 导入）
@@ -28,6 +31,9 @@ export type { FormProps, FormEmits, FormRules } from './Form/types'
 export type { CardProps } from './Card/types'
 export type { LoadingProps } from './Loading/types'
 export type { EmptyProps } from './Empty/types'
+export type { CheckboxProps, CheckboxEmits } from './Checkbox/types'
+export type { LinkProps, LinkEmits } from './Link/types'
+export type { IconProps } from './Icon/types'
 export type { MessageType, MessageOptions } from './Message/types'
 
 // 待实现的组件（占位导出）

@@ -1,5 +1,6 @@
 <template>
   <div class="register-page">
+    <CodeRain :useConfigFile="true" />
     <div class="register-container">
       <div class="register-header">
         <h1 class="register-title">创建账号</h1>
@@ -38,7 +39,7 @@
           <Input
             v-model="form.password"
             type="password"
-            placeholder="请输入密码（6-20个字符）"
+            placeholder="密码：6-20个字符，包含字母+数字，且有大小写或特殊字符"
             size="large"
             :prefix-icon="Lock"
             show-password
@@ -60,12 +61,18 @@
         </FormItem>
 
         <FormItem>
-          <el-checkbox v-model="agreeTerms">
-            我已阅读并同意
-            <el-link type="primary" :underline="false">《用户协议》</el-link>
-            和
-            <el-link type="primary" :underline="false">《隐私政策》</el-link>
-          </el-checkbox>
+          <div class="terms-agreement">
+            <Checkbox v-model="agreeTerms" class="terms-checkbox">
+              <span class="terms-text">
+                <span class="terms-line">我已阅读并同意</span>
+                <span class="terms-line">
+                  <Link type="primary" :underline="false">《用户协议》</Link>
+                  和
+                  <Link type="primary" :underline="false">《隐私政策》</Link>
+                </span>
+              </span>
+            </Checkbox>
+          </div>
         </FormItem>
 
         <FormItem>
@@ -84,7 +91,7 @@
         <FormItem>
           <div class="register-footer">
             <span>已有账号？</span>
-            <el-link type="primary" @click="goToLogin">立即登录</el-link>
+            <Link type="primary" @click="goToLogin">立即登录</Link>
           </div>
         </FormItem>
       </Form>
@@ -96,14 +103,13 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Lock, Message } from '@element-plus/icons-vue'
-import { Form, FormItem, Input, Button } from '@/components/common/base'
-import { useAuthStore } from '@/stores/modules/auth.store'
+import { Form, FormItem, Input, Button, Checkbox, Link } from '@/components/common/base'
+import { CodeRain } from '@/components/common/effects'
 import { success, error } from '@/components/common/base/Message'
 import type { FormInstance, FormRules } from 'element-plus'
-import { userService } from '@/api/services/user.service'
+import { userService, type RegisterResponse } from '@/api/services/user.service'
 
 const router = useRouter()
-const authStore = useAuthStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
@@ -116,8 +122,59 @@ const form = reactive({
   confirmPassword: '',
 })
 
+// 验证密码复杂度
+const validatePassword = (_rule: any, value: string, callback: any) => {
+  if (!value) {
+    callback(new Error('请输入密码'))
+    return
+  }
+
+  if (value.length < 6 || value.length > 20) {
+    callback(new Error('密码长度为 6-20 个字符'))
+    return
+  }
+
+  // 检查是否包含字母和数字
+  const hasLetter = /[a-zA-Z]/.test(value)
+  const hasNumber = /[0-9]/.test(value)
+
+  if (!hasLetter || !hasNumber) {
+    callback(new Error('密码必须包含字母和数字'))
+    return
+  }
+
+  // 检查是否有大小写或特殊字符
+  const hasUpperCase = /[A-Z]/.test(value)
+  const hasLowerCase = /[a-z]/.test(value)
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)
+
+  if (!hasUpperCase && !hasLowerCase && !hasSpecialChar) {
+    callback(new Error('密码必须包含大小写字母或特殊字符'))
+    return
+  }
+
+  // 如果只有小写字母，必须有特殊字符
+  if (hasLowerCase && !hasUpperCase && !hasSpecialChar) {
+    callback(new Error('密码必须包含大写字母或特殊字符'))
+    return
+  }
+
+  // 如果只有大写字母，必须有特殊字符
+  if (hasUpperCase && !hasLowerCase && !hasSpecialChar) {
+    callback(new Error('密码必须包含小写字母或特殊字符'))
+    return
+  }
+
+  callback()
+}
+
 // 验证确认密码
-const validateConfirmPassword = (rule: any, value: string, callback: any) => {
+const validateConfirmPassword = (_rule: any, value: string, callback: any) => {
+  if (!value) {
+    callback(new Error('请再次输入密码'))
+    return
+  }
+
   if (value !== form.password) {
     callback(new Error('两次输入的密码不一致'))
   } else {
@@ -137,7 +194,7 @@ const rules: FormRules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度为 6-20 个字符', trigger: 'blur' },
+    { validator: validatePassword, trigger: 'blur' },
   ],
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
@@ -146,39 +203,110 @@ const rules: FormRules = {
 }
 
 const handleSubmit = async () => {
-  if (!formRef.value) return
+  console.log('[Register] 注册按钮被点击')
+  
+  if (!formRef.value) {
+    console.error('[Register] formRef 为空')
+    return
+  }
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
+  console.log('[Register] 开始验证表单')
+  
+  try {
+    // Element Plus 的 validate 方法返回 Promise
+    await formRef.value.validate()
+    console.log('[Register] 表单验证通过')
+  } catch (validationError) {
+    console.warn('[Register] 表单验证失败:', validationError)
+    return
+  }
 
-    if (!agreeTerms.value) {
-      error('请先同意用户协议和隐私政策')
-      return
-    }
+  if (!agreeTerms.value) {
+    console.warn('[Register] 未同意用户协议')
+    error('请先同意用户协议和隐私政策')
+    return
+  }
 
-    loading.value = true
-    try {
-      // 调用注册API
-      const response = await userService.register({
-        username: form.username,
-        email: form.email,
-        password: form.password,
-      })
-
-      if (response.data) {
-        success('注册成功，请登录')
-        // 注册成功后跳转到登录页
-        router.push('/auth/login')
-      } else {
-        error('注册失败，请稍后重试')
-      }
-    } catch (err: any) {
-      error(err?.message || '注册失败，请稍后重试')
-      console.error('Register error:', err)
-    } finally {
-      loading.value = false
-    }
+  console.log('[Register] 准备发送注册请求:', {
+    username: form.username,
+    email: form.email,
+    passwordLength: form.password.length,
   })
+
+  loading.value = true
+  try {
+    // 调用注册API
+    console.log('[Register] 调用 userService.register')
+    const response = await userService.register({
+      username: form.username,
+      email: form.email,
+      password: form.password,
+    })
+
+      console.log('[Register] 注册响应:', response)
+
+      // Axios 响应拦截器已经返回 response.data，所以 response 就是 RegisterResponse
+      // 包含 success、message、user 字段
+      // 注意：userService.register 返回 Promise<ApiResponse<RegisterResponse>>
+      // 但响应拦截器返回 response.data，所以 response 的类型实际上是 RegisterResponse
+      const registerResponse = response as unknown as RegisterResponse
+      
+      if (registerResponse.success) {
+        console.log('[Register] 注册成功')
+        success('注册成功！请查收邮件验证您的邮箱', {
+          duration: 3000,
+          showClose: true,
+        })
+        // 注册成功后跳转到登录页，并提示验证邮箱
+        setTimeout(() => {
+          router.push('/auth/login?registered=true')
+        }, 2000)
+      } else {
+        console.warn('[Register] 注册失败:', registerResponse.message)
+        const errorMsg = registerResponse.message || '注册失败，请稍后重试'
+        error(errorMsg, {
+          duration: 5000,
+          showClose: true,
+        })
+      }
+  } catch (err: any) {
+    console.error('[Register] 注册异常:', err)
+    console.error('[Register] 错误详情:', {
+      message: err?.message,
+      response: err?.response,
+      status: err?.response?.status,
+      data: err?.response?.data,
+    })
+    
+    // 处理不同类型的错误
+    let errorMessage = '注册失败，请稍后重试'
+    
+    if (err?.response?.data) {
+      // 后端返回的错误响应
+      if (err.response.data.message) {
+        errorMessage = err.response.data.message
+      } else if (typeof err.response.data === 'string') {
+        errorMessage = err.response.data
+      }
+    } else if (err?.message) {
+      // 网络错误或其他错误
+      if (err.message.includes('Network Error')) {
+        errorMessage = '网络连接失败，请检查网络后重试'
+      } else if (err.message.includes('timeout')) {
+        errorMessage = '请求超时，请稍后重试'
+      } else {
+        errorMessage = err.message
+      }
+    }
+    
+    error(errorMessage, {
+      duration: 5000,
+      showClose: true,
+    })
+  } finally {
+    loading.value = false
+    console.log('[Register] 注册流程结束')
+  }
 }
 
 const goToLogin = () => {
@@ -188,21 +316,31 @@ const goToLogin = () => {
 
 <style scoped lang="scss">
 .register-page {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 100vw;
+  background: #000000;
   padding: 20px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .register-container {
+  position: relative;
+  z-index: 10;
   width: 100%;
   max-width: 400px;
-  background: var(--el-bg-color);
+  background-color: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(0, 255, 0, 0.3);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 40px rgba(0, 255, 0, 0.5),
+    inset 0 0 10px rgba(0, 255, 0, 0.2);
   padding: 40px;
+  backdrop-filter: blur(10px);
 }
 
 .register-header {
@@ -213,13 +351,14 @@ const goToLogin = () => {
 .register-title {
   font-size: 28px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: #00FF00;
   margin: 0 0 8px 0;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
 .register-subtitle {
   font-size: 14px;
-  color: var(--el-text-color-regular);
+  color: rgba(0, 255, 0, 0.7);
   margin: 0;
 }
 
@@ -231,10 +370,91 @@ const goToLogin = () => {
   .register-footer {
     text-align: center;
     font-size: 14px;
-    color: var(--el-text-color-regular);
+    color: rgba(255, 255, 255, 0.7);
 
-    .el-link {
-      margin-left: 4px;
+    // Link 组件样式已通过全局样式统一，无需额外样式
+  }
+
+  :deep(.el-form-item__label) {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  :deep(.el-input__wrapper) {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.1);
+
+    &:hover {
+      border-color: rgba(0, 255, 0, 0.5);
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+    }
+
+    &.is-focus {
+      border-color: rgba(0, 255, 0, 0.6);
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    }
+  }
+
+  :deep(.el-input__inner) {
+    color: #00FF00;
+
+    &::placeholder {
+      color: rgba(0, 255, 0, 0.4);
+    }
+  }
+
+  :deep(.el-checkbox__label) {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+  }
+
+  :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+    background-color: #00FF00;
+    border-color: #00FF00;
+  }
+
+  .terms-agreement {
+    width: 100%;
+  }
+
+  .terms-checkbox {
+    width: 100%;
+    align-items: flex-start;
+
+    :deep(.el-checkbox__label) {
+      width: calc(100% - 20px);
+      white-space: normal;
+      word-wrap: break-word;
+    }
+  }
+
+  .terms-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .terms-line {
+    display: block;
+    line-height: 1.5;
+  }
+
+  :deep(.el-button--primary) {
+    background-color: #00FF00;
+    border-color: #00FF00;
+    color: #000000;
+    font-weight: 600;
+
+    &:hover {
+      background-color: #00cc00;
+      border-color: #00cc00;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    }
+
+    &:disabled {
+      background-color: rgba(0, 255, 0, 0.3);
+      border-color: rgba(0, 255, 0, 0.3);
+      color: rgba(0, 0, 0, 0.5);
     }
   }
 }

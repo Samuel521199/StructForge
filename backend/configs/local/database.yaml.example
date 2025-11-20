@@ -1,0 +1,54 @@
+# 数据库配置示例文件
+# 复制此文件为 database.yaml 并根据实际情况修改配置
+
+database:
+  # 适配器类型：postgres, mysql, sqlite
+  adapter_type: postgres
+
+  # ========== 通用配置 ==========
+  max_open_conns: 100          # 最大打开连接数
+  max_idle_conns: 10          # 最大空闲连接数
+  conn_max_lifetime: 1h       # 连接最大生存时间
+  conn_max_idle_time: 10m      # 连接最大空闲时间
+  log_level: warn              # 日志级别：silent, error, warn, info
+  slow_threshold: 200ms        # 慢查询阈值
+
+  # ========== PostgreSQL 配置 ==========
+  postgres:
+    # 方式1：使用单独的配置项（推荐）
+    host: localhost
+    port: 5432
+    user: postgres
+    password: your_password_here
+    dbname: structforge
+    sslmode: disable           # disable, require, verify-ca, verify-full
+    timezone: Asia/Shanghai
+
+    # 方式2：使用完整 DSN（如果设置了 DSN，会覆盖上面的配置）
+    # dsn: "host=localhost user=postgres password=password dbname=structforge port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+
+  # ========== MySQL 配置（示例，取消注释以使用） ==========
+  # mysql:
+  #   # 方式1：使用单独的配置项
+  #   host: localhost
+  #   port: 3306
+  #   user: root
+  #   password: your_password_here
+  #   dbname: structforge
+  #   charset: utf8mb4
+  #   parse_time: true
+  #   loc: Local
+  #
+  #   # 方式2：使用完整 DSN
+  #   # dsn: "user:password@tcp(localhost:3306)/structforge?charset=utf8mb4&parseTime=True&loc=Local"
+
+  # ========== SQLite 配置（示例，取消注释以使用） ==========
+  # sqlite:
+  #   # 方式1：使用文件路径
+  #   path: data.db
+  #   foreign_keys: true        # 启用外键约束
+  #   busy_timeout: 5s          # 忙等待超时
+  #
+  #   # 方式2：使用完整 DSN
+  #   # dsn: "data.db"
+

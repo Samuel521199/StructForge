@@ -1,6 +1,112 @@
 # Gateway 服务本地开发环境配置
 # 此配置文件包含 Nacos 连接信息，用于从 Nacos 配置中心获取完整配置
 
+# 服务器配置
+server:
+  id: gateway-service
+  name: gateway
+  version: v1.0.0
+  http:
+    addr: ":8000"
+    timeout: 30
+
+# Gateway 配置（必须放在 gateway 字段下）
+gateway:
+  # JWT 配置
+  jwt:
+    secret_key: "your-secret-key-change-in-production"
+    token_duration: "24h"
+
+  # 路由配置
+  routes:
+    routes:
+      # 用户服务路由
+      - path: "/api/v1/users"
+        match_type: "prefix"
+        service: "user-service"
+        target_path: ""  # 空表示使用原始路径
+        require_auth: false  # 注册、登录等接口不需要认证
+        timeout: 30
+        retries: 0
+        load_balance_strategy: "round_robin"
+        rate_limit:
+          qps: 100
+          burst: 200
+        cache:
+          enabled: true
+          ttl: 300  # 5分钟
+          key_prefix: "gateway:cache:users:"
+          methods:
+            - "GET"
+          include_query_params: true
+          exclude_paths:
+            - "/api/v1/users/login"
+            - "/api/v1/users/register"
+
+      # 需要认证的用户服务路由（如获取当前用户信息）
+      - path: "/api/v1/users/me"
+        match_type: "exact"
+        service: "user-service"
+        target_path: "/api/v1/users/me"
+        require_auth: true
+        timeout: 30
+        retries: 2
+        load_balance_strategy: "round_robin"
+        rate_limit:
+          qps: 50
+          burst: 100
+        circuit_breaker:
+          enabled: true
+          failure_threshold: 0.5  # 50% 失败率触发熔断
+          min_requests: 10         # 至少10个请求才开始计算失败率
+          window_size: 60          # 60秒时间窗口
+          open_duration: 30        # 打开状态持续30秒
+          half_open_requests: 3    # 半开状态允许3个请求
+          timeout: 5               # 5秒超时
+
+  # 服务配置（静态服务发现）
+  services:
+    services:
+      user-service:
+        - id: "user-service-1"
+          host: "localhost"
+          port: 8001
+          weight: 100
+          healthy: true
+          metadata:
+            version: "v1.0.0"
+            region: "local"
+
+  # 前端配置
+  frontend:
+    url: "http://localhost:5173"  # 前端开发服务器地址
+    allowed_urls:
+      - "http://localhost:5173"   # 开发环境
+      - "http://localhost:3000"   # 备用端口
+      - "https://structforge.com"  # 生产环境（示例）
+
+  # CORS 配置
+  cors:
+    allowed_origins:
+      - "http://localhost:5173"
+      - "http://localhost:3000"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "PATCH"
+      - "OPTIONS"
+      - "HEAD"
+    allowed_headers:
+      - "*"
+    exposed_headers:
+      - "Authorization"
+      - "Content-Type"
+    allow_credentials: true
+    max_age: 86400  # 24小时
+
+# Nacos 配置（可选）
 nacos:
   # Nacos 服务器配置
   server_configs:
@@ -24,8 +130,7 @@ nacos:
   
   # 配置中心配置
   config_center:
-    enabled: true
+    enabled: false  # 本地开发环境可以禁用 Nacos
     data_id: "gateway-config"
     group: "DEFAULT_GROUP"
     namespace: "public"
-

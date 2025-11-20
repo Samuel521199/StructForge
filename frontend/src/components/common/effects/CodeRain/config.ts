@@ -21,6 +21,8 @@ export interface CodeRainConfig {
   columnSpacingFactor?: number
   trailLength?: number
   characters?: string
+  minWaitTime?: number // 最小等待时间（秒）
+  maxWaitTime?: number // 最大等待时间（秒）
 }
 
 export interface CodeRainConfigFile {
@@ -41,8 +43,8 @@ export const defaultConfig: CodeRainConfig = {
   density: 0.008,
   opacity: 0.9,
   fadeSpeed: 0.04,
-  minLength: 15,
-  maxLength: 35,
+  minLength: 0.8, // 相对于屏幕高度的倍数
+  maxLength: 1.5, // 相对于屏幕高度的倍数
   enableLayers: false,
   enableGlow: true,
   enableGlitch: false,
@@ -50,6 +52,8 @@ export const defaultConfig: CodeRainConfig = {
   columnSpacingFactor: 2.5,
   trailLength: 20,
   characters: 'アァカサタナハマヤラワガザダバパ0123456789!@#$%^&*()_+-=[]{};:"|,./<>?',
+  minWaitTime: 0.1, // 默认最小等待时间 0.1 秒
+  maxWaitTime: 5.0, // 默认最大等待时间 5.0 秒
 }
 
 /**
@@ -153,40 +157,42 @@ export async function loadConfig(configPath?: string): Promise<CodeRainConfig> {
       throw new Error('配置文件格式错误：缺少 codeRain 字段')
     }
     
-    // 调试：输出加载的配置（仅开发环境）
-    if (import.meta.env.DEV) {
-      console.log('[CodeRain] 配置文件解析成功:', {
-        characters: configData.codeRain.characters,
-        charactersLength: configData.codeRain.characters?.length,
-        speed: configData.codeRain.speed,
-        fontSize: configData.codeRain.fontSize,
-        allKeys: Object.keys(configData.codeRain)
-      })
-    }
+    // 临时关闭日志输出以便调试注册功能
+    // if (import.meta.env.DEV) {
+    //   console.log('[CodeRain] 配置文件解析成功:', {
+    //     characters: configData.codeRain.characters,
+    //     charactersLength: configData.codeRain.characters?.length,
+    //     speed: configData.codeRain.speed,
+    //     fontSize: configData.codeRain.fontSize,
+    //     allKeys: Object.keys(configData.codeRain)
+    //   })
+    // }
     
     const finalConfig = {
       ...defaultConfig,
       ...configData.codeRain,
     }
     
-    // 调试：输出最终配置（仅开发环境）
-    if (import.meta.env.DEV) {
-      console.log('[CodeRain] 最终配置:', {
-        characters: finalConfig.characters,
-        charactersLength: finalConfig.characters?.length,
-        isDefault: finalConfig.characters === defaultConfig.characters
-      })
-    }
+    // 临时关闭日志输出以便调试注册功能
+    // if (import.meta.env.DEV) {
+    //   console.log('[CodeRain] 最终配置:', {
+    //     characters: finalConfig.characters,
+    //     charactersLength: finalConfig.characters?.length,
+    //     isDefault: finalConfig.characters === defaultConfig.characters
+    //   })
+    // }
     
     // 确保 characters 字段存在
     if (!finalConfig.characters) {
-      console.warn('[CodeRain] 配置中缺少 characters 字段，使用默认值')
+      // 临时关闭日志输出以便调试注册功能
+      // console.warn('[CodeRain] 配置中缺少 characters 字段，使用默认值')
       finalConfig.characters = defaultConfig.characters
     }
     
     return finalConfig
   } catch (error) {
-    console.warn('[CodeRain] 配置文件加载失败，使用默认配置:', error)
+    // 临时关闭日志输出以便调试注册功能
+    // console.warn('[CodeRain] 配置文件加载失败，使用默认配置:', error)
     return defaultConfig
   }
 }

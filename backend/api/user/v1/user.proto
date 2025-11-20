@@ -1,0 +1,244 @@
+syntax = "proto3";
+
+package api.user.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "StructForge/backend/api/user/v1;v1";
+
+// 用户服务
+service UserService {
+  // 用户注册
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/register"
+      body: "*"
+    };
+  }
+
+  // 用户登录
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/login"
+      body: "*"
+    };
+  }
+
+  // 验证邮箱
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/verify-email"
+      body: "*"
+    };
+  }
+
+  // 重新发送验证邮件
+  rpc ResendVerificationEmail(ResendVerificationEmailRequest) returns (ResendVerificationEmailResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/resend-verification"
+      body: "*"
+    };
+  }
+
+  // 获取用户信息
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/{id}"
+    };
+  }
+
+  // 获取当前用户信息
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/me"
+    };
+  }
+
+  // 更新用户信息
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/users/me"
+      body: "*"
+    };
+  }
+
+  // 修改密码
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/change-password"
+      body: "*"
+    };
+  }
+
+  // 请求重置密码
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/request-password-reset"
+      body: "*"
+    };
+  }
+
+  // 重置密码
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/reset-password"
+      body: "*"
+    };
+  }
+}
+
+// 用户信息
+message User {
+  int64 id = 1;                          // 用户ID
+  string username = 2;                   // 用户名
+  string email = 3;                      // 邮箱
+  bool email_verified = 4;               // 邮箱是否已验证
+  string status = 5;                     // 状态：active, inactive, banned
+  google.protobuf.Timestamp created_at = 6;  // 创建时间
+  google.protobuf.Timestamp updated_at = 7;  // 更新时间
+  google.protobuf.Timestamp last_login_at = 8; // 最后登录时间
+  string last_login_ip = 9;              // 最后登录IP
+  UserProfile profile = 10;               // 用户资料
+}
+
+// 用户资料
+message UserProfile {
+  int64 id = 1;                          // 资料ID
+  int64 user_id = 2;                     // 用户ID
+  string nickname = 3;                   // 昵称
+  string avatar_url = 4;                  // 头像URL
+  string bio = 5;                        // 个人简介
+  string phone = 6;                      // 手机号
+  string gender = 7;                     // 性别：male, female, other
+  string birthday = 8;                   // 生日（YYYY-MM-DD）
+  string location = 9;                   // 所在地
+  string website = 10;                   // 个人网站
+  google.protobuf.Timestamp created_at = 11; // 创建时间
+  google.protobuf.Timestamp updated_at = 12; // 更新时间
+}
+
+// 注册请求
+message RegisterRequest {
+  string username = 1;                  // 用户名（必填）
+  string email = 2;                      // 邮箱（必填）
+  string password = 3;                   // 密码（必填）
+}
+
+// 注册响应
+message RegisterResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+  User user = 3;                         // 用户信息（如果成功）
+}
+
+// 登录请求
+message LoginRequest {
+  string username = 1;                   // 用户名或邮箱
+  string password = 2;                   // 密码
+}
+
+// 登录响应
+message LoginResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+  string token = 3;                      // JWT Token
+  User user = 4;                         // 用户信息
+}
+
+// 验证邮箱请求
+message VerifyEmailRequest {
+  string token = 1;                      // 验证令牌
+}
+
+// 验证邮箱响应
+message VerifyEmailResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+}
+
+// 重新发送验证邮件请求
+message ResendVerificationEmailRequest {
+  string email = 1;                      // 邮箱
+}
+
+// 重新发送验证邮件响应
+message ResendVerificationEmailResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+}
+
+// 获取用户请求
+message GetUserRequest {
+  int64 id = 1;                          // 用户ID
+}
+
+// 获取用户响应
+message GetUserResponse {
+  User user = 1;                         // 用户信息
+}
+
+// 获取当前用户请求
+message GetCurrentUserRequest {
+  // 空，从JWT Token中获取用户ID
+}
+
+// 获取当前用户响应
+message GetCurrentUserResponse {
+  User user = 1;                         // 用户信息
+}
+
+// 更新用户请求
+message UpdateUserRequest {
+  string nickname = 1;                  // 昵称（可选）
+  string avatar_url = 2;                 // 头像URL（可选）
+  string bio = 3;                       // 个人简介（可选）
+  string phone = 4;                     // 手机号（可选）
+  string gender = 5;                    // 性别（可选）
+  string birthday = 6;                  // 生日（可选）
+  string location = 7;                  // 所在地（可选）
+  string website = 8;                   // 个人网站（可选）
+}
+
+// 更新用户响应
+message UpdateUserResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+  User user = 3;                         // 更新后的用户信息
+}
+
+// 修改密码请求
+message ChangePasswordRequest {
+  string old_password = 1;               // 旧密码
+  string new_password = 2;               // 新密码
+}
+
+// 修改密码响应
+message ChangePasswordResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+}
+
+// 请求重置密码请求
+message RequestPasswordResetRequest {
+  string email = 1;                      // 邮箱
+}
+
+// 请求重置密码响应
+message RequestPasswordResetResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+}
+
+// 重置密码请求
+message ResetPasswordRequest {
+  string token = 1;                     // 重置令牌
+  string new_password = 2;               // 新密码
+}
+
+// 重置密码响应
+message ResetPasswordResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+}
+

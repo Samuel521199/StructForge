@@ -36,6 +36,33 @@ const authRoutes: RouteRecordRaw[] = [
           title: '注册',
           hideInMenu: true
         }
+      },
+      {
+        path: 'forgot-password',
+        name: 'ForgotPassword',
+        component: () => import('@/views/auth/ForgotPassword.vue'),
+        meta: {
+          title: '忘记密码',
+          hideInMenu: true
+        }
+      },
+      {
+        path: 'reset-password',
+        name: 'ResetPassword',
+        component: () => import('@/views/auth/ResetPassword.vue'),
+        meta: {
+          title: '重置密码',
+          hideInMenu: true
+        }
+      },
+      {
+        path: 'verify-email',
+        name: 'VerifyEmail',
+        component: () => import('@/views/auth/VerifyEmail.vue'),
+        meta: {
+          title: '邮箱验证',
+          hideInMenu: true
+        }
       }
     ]
   }

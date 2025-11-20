@@ -49,8 +49,8 @@
 
         <FormItem>
           <div class="login-options">
-            <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-            <el-link type="primary" :underline="false">忘记密码？</el-link>
+            <Checkbox v-model="rememberMe">记住我</Checkbox>
+            <Link type="primary" :underline="false" @click="goToForgotPassword">忘记密码？</Link>
           </div>
         </FormItem>
 
@@ -69,7 +69,7 @@
         <FormItem>
           <div class="login-footer">
             <span>还没有账号？</span>
-            <el-link type="primary" @click="goToRegister">立即注册</el-link>
+            <Link type="primary" @click="goToRegister">立即注册</Link>
           </div>
         </FormItem>
       </Form>
@@ -78,10 +78,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Lock } from '@element-plus/icons-vue'
-import { Form, FormItem, Input, Button } from '@/components/common/base'
+import { Form, FormItem, Input, Button, Checkbox, Link } from '@/components/common/base'
 import { CodeRain } from '@/components/common/effects'
 import { useAuthStore } from '@/stores/modules/auth.store'
 import { success, error } from '@/components/common/base/Message'
@@ -139,6 +139,18 @@ const handleSubmit = async () => {
 const goToRegister = () => {
   router.push('/auth/register')
 }
+
+const goToForgotPassword = () => {
+  router.push('/auth/forgot-password')
+}
+
+// 检查是否有注册成功的提示
+onMounted(() => {
+  const registered = router.currentRoute.value.query.registered
+  if (registered === 'true') {
+    success('注册成功！请查收邮件验证您的邮箱')
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -210,15 +222,7 @@ const goToRegister = () => {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.7);
 
-    .el-link {
-      margin-left: 4px;
-      color: #00FF00;
-      
-      &:hover {
-        color: #00FF00;
-        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-      }
-    }
+    // Link 组件样式已通过全局样式统一，无需额外样式
   }
   
   :deep(.el-form-item__label) {

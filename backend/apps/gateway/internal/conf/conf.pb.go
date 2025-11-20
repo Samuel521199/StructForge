@@ -10,6 +10,8 @@ type Bootstrap struct {
 	Server *Server `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
 	// Redis 配置
 	Redis *Redis `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
+	// Gateway 配置
+	Gateway *GatewayConfig `protobuf:"bytes,3,opt,name=gateway,proto3" json:"gateway,omitempty"`
 }
 
 // Server 服务器配置

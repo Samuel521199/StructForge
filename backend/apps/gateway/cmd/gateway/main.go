@@ -152,25 +152,45 @@ func main() {
 	}
 	log.Info(ctx, "Nacos 配置客户端创建成功")
 
-	// ========== 第四步：从Nacos获取完整配置（Bootstrap）==========
-	// 创建 Bootstrap 配置结构
-	var bc conf.Bootstrap
+	// ========== 第四步：加载完整配置（Bootstrap）==========
+	// 如果启用了 Nacos 配置中心，从 Nacos 获取配置
+	// 否则直接从本地文件加载配置
+	var bc *conf.Bootstrap
 
-	log.Info(ctx, "正在从 Nacos 获取完整配置")
-	dm, err := nacosClient.NewConfigManager(nacosConfigClient, &startupConfig, &bc)
-	if err != nil {
-		log.Error(ctx, "从 Nacos 获取配置失败",
-			log.ErrorField(err),
+	if startupConfig.Nacos.ConfigCenter.Enabled {
+		// 从 Nacos 获取配置
+		log.Info(ctx, "正在从 Nacos 获取完整配置")
+		var bcTemp conf.Bootstrap
+		dm, err := nacosClient.NewConfigManager(nacosConfigClient, &startupConfig, &bcTemp)
+		if err != nil {
+			log.Error(ctx, "从 Nacos 获取配置失败",
+				log.ErrorField(err),
+			)
+			os.Exit(1)
+		}
+		defer dm.Close()
+		bc = &bcTemp
+
+		log.Info(ctx, "从 Nacos 获取配置成功",
+			log.String("data_id", startupConfig.Nacos.ConfigCenter.DataId),
+			log.String("group", startupConfig.Nacos.ConfigCenter.Group),
 		)
-		os.Exit(1)
+	} else {
+		// 直接从本地文件加载配置
+		log.Info(ctx, "正在从本地文件加载配置")
+		var err error
+		bc, err = loadConfig(configPath)
+		if err != nil {
+			log.Error(ctx, "加载配置文件失败",
+				log.ErrorField(err),
+				log.String("config_path", configPath),
+			)
+			os.Exit(1)
+		}
+		log.Info(ctx, "从本地文件加载配置成功",
+			log.String("config_path", configPath),
+		)
 	}
-	defer dm.Close()
-
-	// bc 已经在 NewConfigManager 中通过 Scan 填充了配置
-	log.Info(ctx, "从 Nacos 获取配置成功",
-		log.String("data_id", startupConfig.Nacos.ConfigCenter.DataId),
-		log.String("group", startupConfig.Nacos.ConfigCenter.Group),
-	)
 
 	// ========== 第五步：更新日志系统配置（如果需要）==========
 	// 如果 Bootstrap 配置中有服务ID，可以更新日志系统
@@ -251,7 +271,7 @@ func main() {
 	// ========== 第六步：使用Wire进行依赖注入，创建应用实例 ==========
 	log.Info(ctx, "正在初始化应用实例")
 
-	app, cleanup, err := wireApp(&bc, bc.Redis)
+	app, cleanup, err := wireApp(bc, bc.Redis)
 	if err != nil {
 		log.Error(ctx, "gateway 服务初始化失败",
 			log.ErrorField(err),
