@@ -11,8 +11,8 @@ export interface ButtonProps {
   disabled?: boolean
   /** 是否加载中 */
   loading?: boolean
-  /** 图标类名 */
-  icon?: string
+  /** 图标组件或类名 */
+  icon?: string | object
   /** 是否圆角按钮 */
   round?: boolean
   /** 是否圆形按钮 */

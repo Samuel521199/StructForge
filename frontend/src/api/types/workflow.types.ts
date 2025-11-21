@@ -19,7 +19,7 @@ export interface Node {
   type: string
   name: string
   position: { x: number; y: number }
-  data: Record<string, any>
+  data: Record<string, unknown>
   inputs?: NodePort[]
   outputs?: NodePort[]
 }
@@ -38,10 +38,12 @@ export interface NodePort {
   type: string
 }
 
+export type VariableValue = string | number | boolean | null | undefined | Record<string, unknown> | unknown[]
+
 export interface Variable {
   name: string
   type: string
-  value: any
+  value: VariableValue
   description?: string
 }
 
@@ -51,7 +53,33 @@ export interface Execution {
   status: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
   startTime?: string
   endTime?: string
-  result?: any
+  result?: Record<string, unknown>
   error?: string
+}
+
+// 工作流列表项（简化版，用于列表展示）
+export interface WorkflowListItem {
+  id: string
+  name: string
+  description?: string
+  status: 'draft' | 'active' | 'archived' | 'running' | 'stopped' | 'paused' | 'error'
+  createdAt: string
+  updatedAt: string
+}
+
+// 工作流列表查询参数
+export interface WorkflowListParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: WorkflowListItem['status']
+}
+
+// 工作流列表响应
+export interface WorkflowListResponse {
+  list: WorkflowListItem[]
+  total: number
+  page: number
+  pageSize: number
 }
 

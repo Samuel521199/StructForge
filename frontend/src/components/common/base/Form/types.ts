@@ -14,5 +14,6 @@ export interface FormProps {
 
 export interface FormEmits {
   (e: 'validate', prop: string, isValid: boolean, message: string): void
+  (e: 'submit', event: Event): void
 }
 

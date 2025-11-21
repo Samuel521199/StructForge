@@ -73,3 +73,8 @@ const handleInput = (value: string | number) => {
 }
 </script>
 
+<style scoped lang="scss">
+// 注意：这里不添加样式，样式由使用该组件的页面控制
+// 如果需要组件级别的样式，可以在使用页面通过 :deep() 覆盖
+</style>
+

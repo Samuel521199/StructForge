@@ -1,0 +1,154 @@
+/**
+ * Element Plus 样式覆盖
+ * 用于覆盖 Element Plus 默认样式，特别是输入框的白色背景
+ */
+
+// 在认证页面中覆盖输入框样式
+.auth-page {
+  // 使用最高优先级的选择器覆盖 Element Plus 默认样式
+  .el-form-item {
+    .el-input {
+      .el-input__wrapper {
+        background-color: rgba(30, 30, 30, 0.6) !important;
+        background: rgba(30, 30, 30, 0.6) !important;
+        border: 1px solid rgba(0, 255, 0, 0.3) !important;
+        box-shadow: 0 0 5px rgba(0, 255, 0, 0.1) !important;
+        backdrop-filter: blur(8px) !important;
+        
+        .el-input__inner {
+          background-color: transparent !important;
+          background: transparent !important;
+          color: rgba(0, 255, 0, 0.9) !important;
+          
+          // 当输入框有内容时（非 placeholder 状态）
+          &:not(:placeholder-shown) {
+            background-color: transparent !important;
+            background: transparent !important;
+          }
+          
+          // 聚焦状态
+          &:focus {
+            background-color: transparent !important;
+            background: transparent !important;
+          }
+        }
+        
+        .el-input__prefix,
+        .el-input__suffix {
+          background-color: transparent !important;
+          background: transparent !important;
+        }
+        
+        .el-input__prefix-inner,
+        .el-input__suffix-inner {
+          background-color: transparent !important;
+          background: transparent !important;
+        }
+        
+        > * {
+          background-color: transparent !important;
+          background: transparent !important;
+        }
+        
+        // 当输入框有内容时的包装器状态
+        &:has(.el-input__inner:not(:placeholder-shown)) {
+          background-color: rgba(30, 30, 30, 0.6) !important;
+          background: rgba(30, 30, 30, 0.6) !important;
+        }
+        
+        &:hover {
+          background-color: rgba(40, 40, 40, 0.7) !important;
+          background: rgba(40, 40, 40, 0.7) !important;
+          border-color: rgba(0, 255, 0, 0.5) !important;
+        }
+        
+        &.is-focus {
+          background-color: rgba(50, 50, 50, 0.75) !important;
+          background: rgba(50, 50, 50, 0.75) !important;
+          border-color: rgba(0, 255, 0, 0.6) !important;
+          
+          // 聚焦且有内容时
+          &:has(.el-input__inner:not(:placeholder-shown)) {
+            background-color: rgba(50, 50, 50, 0.75) !important;
+            background: rgba(50, 50, 50, 0.75) !important;
+          }
+        }
+        
+        &.is-error {
+          background-color: rgba(30, 30, 30, 0.6) !important;
+          background: rgba(30, 30, 30, 0.6) !important;
+          border-color: rgba(255, 0, 0, 0.5) !important;
+        }
+      }
+      
+      // 当输入框有内容时的额外覆盖
+      &.is-focus .el-input__wrapper,
+      .el-input__wrapper:has(.el-input__inner:not(:placeholder-shown)) {
+        background-color: rgba(30, 30, 30, 0.6) !important;
+        background: rgba(30, 30, 30, 0.6) !important;
+      }
+    }
+    
+    // 错误状态的输入框
+    &.is-error {
+      .el-input__wrapper {
+        background-color: rgba(30, 30, 30, 0.6) !important;
+        background: rgba(30, 30, 30, 0.6) !important;
+        border-color: rgba(255, 0, 0, 0.5) !important;
+      }
+    }
+  }
+  
+  // 复选框样式
+  .el-checkbox {
+    .el-checkbox__inner {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+      border-color: rgba(0, 255, 0, 0.3) !important;
+      
+      &:hover {
+        background-color: rgba(40, 40, 40, 0.7) !important;
+        background: rgba(40, 40, 40, 0.7) !important;
+        border-color: rgba(0, 255, 0, 0.5) !important;
+      }
+    }
+    
+    &.is-checked {
+      .el-checkbox__inner {
+        background-color: #00FF00 !important;
+        border-color: #00FF00 !important;
+      }
+    }
+  }
+  
+  // 强制覆盖所有可能的输入框状态 - 确保有内容时也保持深灰色背景
+  .el-form-item .el-input .el-input__wrapper,
+  .el-form-item .el-input.is-focus .el-input__wrapper,
+  .el-form-item .el-input.is-error .el-input__wrapper,
+  .el-form-item .el-input.is-success .el-input__wrapper {
+    // 无论是否有内容，都保持深灰色背景
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6) !important;
+    
+    // 聚焦时稍亮
+    &.is-focus {
+      background-color: rgba(50, 50, 50, 0.75) !important;
+      background: rgba(50, 50, 50, 0.75) !important;
+    }
+    
+    // 确保内部元素始终透明
+    .el-input__inner {
+      background-color: transparent !important;
+      background: transparent !important;
+      
+      // 无论是否有内容，都保持透明
+      &[value]:not([value=""]),
+      &:not(:placeholder-shown),
+      &:focus {
+        background-color: transparent !important;
+        background: transparent !important;
+      }
+    }
+  }
+}
+

@@ -16,7 +16,11 @@ export interface LoginResponse {
   user: UserInfo
 }
 
-export interface UserInfo extends User {}
+export interface UserInfo extends User {
+  nickname?: string
+  avatar_url?: string
+  bio?: string
+}
 
 export interface RegisterRequest {
   username: string

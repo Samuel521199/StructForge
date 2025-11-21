@@ -1,5 +1,5 @@
 <template>
-  <div class="register-page">
+  <div class="register-page auth-page">
     <CodeRain :useConfigFile="true" />
     <div class="register-container">
       <div class="register-header">
@@ -370,47 +370,218 @@ const goToLogin = () => {
   .register-footer {
     text-align: center;
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(85, 81, 81, 0.562);
 
     // Link 组件样式已通过全局样式统一，无需额外样式
   }
 
   :deep(.el-form-item__label) {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(145, 137, 137, 0.551);
   }
 
-  :deep(.el-input__wrapper) {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(0, 255, 0, 0.3);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.1);
+  // 输入框包装器样式 - 深灰色半透明背景（最外层）
+  // 使用最具体的选择器确保覆盖所有状态和 Element Plus 默认样式
+  :deep(.el-form-item .el-input__wrapper),
+  :deep(.el-form-item .el-input .el-input__wrapper),
+  :deep(.el-input__wrapper),
+  :deep(.el-input.is-disabled .el-input__wrapper),
+  :deep(.el-input.is-error .el-input__wrapper),
+  :deep(.el-input.is-success .el-input__wrapper),
+  :deep(.el-form-item.is-error .el-input__wrapper),
+  :deep(.el-form-item.is-success .el-input__wrapper) {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6) !important; // 兼容性写法
+    border: 1px solid rgba(0, 255, 0, 0.3) !important;
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+
+    // 内部输入元素设为透明
+    .el-input__inner {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 前缀和后缀区域也设为透明
+    .el-input__prefix,
+    .el-input__suffix {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 前缀和后缀内部元素
+    .el-input__prefix-inner,
+    .el-input__suffix-inner {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 所有子元素都设为透明（除了包装器本身）
+    > * {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
 
     &:hover {
-      border-color: rgba(0, 255, 0, 0.5);
-      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+      background-color: rgba(40, 40, 40, 0.7) !important;
+      background: rgba(40, 40, 40, 0.7) !important;
+      border-color: rgba(0, 255, 0, 0.5) !important;
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2) !important;
     }
 
     &.is-focus {
-      border-color: rgba(0, 255, 0, 0.6);
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+      background-color: rgba(50, 50, 50, 0.75) !important;
+      background: rgba(50, 50, 50, 0.75) !important;
+      border-color: rgba(0, 255, 0, 0.6) !important;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3) !important;
+    }
+    
+    // 当输入框有内容时（非 placeholder 状态）保持深灰色背景
+    &:has(.el-input__inner:not(:placeholder-shown)) {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+    }
+    
+    // 聚焦且有内容时
+    &.is-focus:has(.el-input__inner:not(:placeholder-shown)) {
+      background-color: rgba(50, 50, 50, 0.75) !important;
+      background: rgba(50, 50, 50, 0.75) !important;
+    }
+    
+    // 错误状态也使用深灰色背景
+    &.is-error {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+      border-color: rgba(255, 0, 0, 0.5) !important;
     }
   }
 
-  :deep(.el-input__inner) {
-    color: #00FF00;
+  // 输入框内部文字样式 - 覆盖所有状态
+  :deep(.el-input__inner),
+  :deep(.el-input.is-disabled .el-input__inner),
+  :deep(.el-input.is-error .el-input__inner),
+  :deep(.el-input.is-success .el-input__inner) {
+    color: rgba(0, 255, 0, 0.9) !important;
+    background-color: transparent !important;
+    background: transparent !important;
+
+    // 当输入框有内容时（非 placeholder 状态）
+    &:not(:placeholder-shown) {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 聚焦状态
+    &:focus {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
 
     &::placeholder {
-      color: rgba(0, 255, 0, 0.4);
+      color: rgba(0, 255, 0, 0.4) !important;
+    }
+  }
+  
+  // 确保输入框组件本身透明（但不影响包装器）
+  :deep(.el-input),
+  :deep(.el-input.is-disabled),
+  :deep(.el-input.is-error),
+  :deep(.el-input.is-success) {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  // 覆盖所有可能的输入框状态
+  :deep(.el-input.is-disabled .el-input__wrapper),
+  :deep(.el-input.is-disabled .el-input__inner),
+  :deep(.el-input.is-error .el-input__wrapper),
+  :deep(.el-input.is-error .el-input__inner) {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6) !important;
+  }
+  
+  // 确保输入框的所有内部容器都没有白色背景
+  :deep(.el-input__container) {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  // 强制覆盖所有可能的白色背景 - 使用最高优先级
+  :deep(.el-input),
+  :deep(.el-input *),
+  :deep(.el-input__wrapper),
+  :deep(.el-input__wrapper *),
+  :deep(.el-input__inner),
+  :deep(.el-input__inner *) {
+    // 确保没有白色背景
+    &[style*="background"],
+    &[style*="background-color"] {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+  }
+  
+  // 特别处理包装器，确保它保持深灰色背景
+  :deep(.el-input__wrapper) {
+    &,
+    &[style*="background"],
+    &[style*="background-color"] {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+    }
+  }
+  
+  // 输入框前缀图标颜色
+  :deep(.el-input__prefix) {
+    .el-input__prefix-inner {
+      color: rgba(0, 255, 0, 0.6) !important;
+    }
+  }
+  
+  // 输入框后缀图标颜色（清除按钮、显示密码按钮等）
+  :deep(.el-input__suffix) {
+    .el-input__suffix-inner {
+      color: rgba(0, 255, 0, 0.6) !important;
+      
+      .el-input__clear {
+        color: rgba(0, 255, 0, 0.6) !important;
+        
+        &:hover {
+          color: rgba(0, 255, 0, 0.9) !important;
+        }
+      }
     }
   }
 
   :deep(.el-checkbox__label) {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(131, 128, 128, 0.582);
     line-height: 1.5;
   }
-
+  
+  // 复选框未选中状态的背景透明度
+  :deep(.el-checkbox__inner) {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    border-color: rgba(0, 255, 0, 0.3) !important;
+    
+    &:hover {
+      background-color: rgba(40, 40, 40, 0.7) !important;
+      border-color: rgba(0, 255, 0, 0.5) !important;
+    }
+  }
+  
+  // 复选框选中状态的样式
   :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-    background-color: #00FF00;
-    border-color: #00FF00;
+    background-color: #00FF00 !important;
+    border-color: #00FF00 !important;
+    
+    &::after {
+      border-color: #000000 !important;
+    }
+  }
+  
+  // 复选框禁用状态
+  :deep(.el-checkbox.is-disabled .el-checkbox__inner) {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(0, 255, 0, 0.2) !important;
   }
 
   .terms-agreement {

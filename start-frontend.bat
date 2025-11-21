@@ -1,111 +1,139 @@
 @echo off
 setlocal enabledelayedexpansion
-chcp 65001 >nul
+chcp 65001 >nul 2>&1
 echo ========================================
-echo   启动 StructForge 前端服务
+echo   Starting StructForge Frontend Service
 echo ========================================
 echo.
 
-REM 切换到前端目录
+REM Switch to frontend directory
 cd /d "%~dp0frontend"
 
-REM 检查 Node.js 环境
+REM Check Node.js environment
 where node >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [错误] 未找到 Node.js 环境，请先安装 Node.js 18+
-    echo 下载地址: https://nodejs.org/
+    echo [Error] Node.js not found, please install Node.js 18+
+    echo Download: https://nodejs.org/
     pause
     exit /b 1
 )
 
-REM 检查 npm 环境
+REM Check npm environment
 where npm >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [错误] 未找到 npm，请先安装 Node.js
+    echo [Error] npm not found, please install Node.js
     pause
     exit /b 1
 )
 
-echo [信息] 当前工作目录: %CD%
-echo [信息] Node.js 版本:
-node --version
-echo [信息] npm 版本:
-npm --version
+REM Quick environment check (reduce output)
+echo [Info] Working directory: %CD%
+node --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [Error] Node.js environment error
+    pause
+    exit /b 1
+)
 echo.
 
-REM 检查 package.json 是否存在
+REM Check if package.json exists
 if not exist "package.json" (
-    echo [错误] 未找到 package.json 文件
-    echo [错误] 请确保在 frontend 目录下存在 package.json
+    echo [Error] package.json not found
+    echo [Error] Please ensure package.json exists in frontend directory
     echo.
     pause
     exit /b 1
 )
 
-REM 检查 node_modules 是否存在
+REM Check if node_modules exists
 if not exist "node_modules" (
-    echo [信息] 检测到 node_modules 不存在，正在安装依赖...
+    echo [Info] node_modules not found, installing dependencies...
     echo.
     call npm install
     if %errorlevel% neq 0 (
-        echo [错误] 依赖安装失败
+        echo [Error] Dependency installation failed
         pause
         exit /b 1
     )
     echo.
-    echo [信息] 依赖安装完成
+    echo [Info] Dependencies installed
     echo.
 )
 
-REM 检查是否安装了 @vue-flow/core
-echo [信息] 检查 Vue Flow 依赖...
+REM Quick check for @vue-flow/core (check only, don't install)
+echo [Info] Checking Vue Flow dependency...
 npm list @vue-flow/core >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [警告] 未找到 @vue-flow/core，正在安装...
-    call npm install @vue-flow/core
-    if %errorlevel% neq 0 (
-        echo [错误] Vue Flow 安装失败
+    echo [Warning] @vue-flow/core not found, installing in background...
+    start /B npm install @vue-flow/core >nul 2>&1
+) else (
+    echo [Info] Vue Flow installed
+)
+echo.
+
+echo [Info] Starting frontend development server...
+echo [Info] Server will auto-open in browser
+echo [Info] Default address: http://localhost:5173
+echo.
+echo ========================================
+echo   Press Ctrl+C to stop
+echo ========================================
+echo.
+
+REM Start frontend development server
+echo [Info] Starting Vite development server...
+echo.
+
+REM Check if port is in use
+netstat -ano | findstr :5173 >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [Warning] Port 5173 is in use!
+    echo [Info] Attempting to stop process using the port...
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173') do (
+        taskkill /PID %%a /F >nul 2>&1
+    )
+    timeout /t 2 /nobreak >nul 2>&1
+    REM Check port again
+    netstat -ano | findstr :5173 >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo [Error] Cannot free port 5173, please stop the process manually
+        echo [Info] You can run stop-all.bat or restart-frontend.bat
         pause
         exit /b 1
+    ) else (
+        echo [Success] Port freed, continuing...
     )
-    echo [信息] Vue Flow 安装完成
-    echo.
-) else (
-    echo [信息] Vue Flow 已安装
     echo.
 )
 
-echo [信息] 正在启动前端开发服务器...
-echo [信息] 前端服务将在浏览器中自动打开
-echo [信息] 默认地址: http://localhost:5173
-echo.
-echo ========================================
-echo   按 Ctrl+C 停止服务
-echo ========================================
-echo.
+REM Start Vite (don't use call, so we can see real-time output)
+npm run dev
 
-REM 启动前端开发服务器
-echo [调试] 准备执行: npm run dev
-echo.
-call npm run dev
+REM Note: If we reach here, npm run dev has exited
 set DEV_EXIT_CODE=!errorlevel!
 
-REM 如果服务退出，显示错误信息
+REM If service exited, show error message
 if !DEV_EXIT_CODE! neq 0 (
     echo.
-    echo [错误] 前端服务启动失败 (退出代码: !DEV_EXIT_CODE!)
-    echo 请检查:
-    echo 1. Node.js 环境是否正确安装
-    echo 2. 依赖是否已安装: npm install
-    echo 3. package.json 是否存在
-    echo 4. vite 是否正确安装
+    echo ----------------------------------------
+    echo [Error] Frontend service failed (exit code: !DEV_EXIT_CODE!)
+    echo ----------------------------------------
     echo.
-    echo [提示] 可以尝试手动运行: npm run dev
+    echo Please check:
+    echo 1. Node.js environment is correctly installed
+    echo 2. Dependencies are installed: npm install
+    echo 3. package.json exists
+    echo 4. vite is correctly installed
+    echo 5. Port 5173 is not in use
+    echo.
+    echo [Info] You can try:
+    echo   - Run restart-frontend.bat to restart
+    echo   - Manually run: npm run dev
+    echo   - Check browser console for errors
     echo.
     pause
 ) else (
     echo.
-    echo [信息] 前端服务已正常退出
+    echo [Info] Frontend service exited normally
     pause
 )
-

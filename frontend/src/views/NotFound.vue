@@ -3,13 +3,14 @@
     <div class="not-found-content">
       <h1 class="not-found-title">404</h1>
       <p class="not-found-desc">页面未找到</p>
-      <el-button type="primary" @click="goHome">返回首页</el-button>
+      <Button type="primary" @click="goHome">返回首页</Button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { Button } from '@/components/common/base'
 
 const router = useRouter()
 

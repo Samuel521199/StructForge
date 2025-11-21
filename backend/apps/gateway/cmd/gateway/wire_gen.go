@@ -12,7 +12,6 @@ import (
 	"StructForge/backend/apps/gateway/internal/middleware/metrics"
 	"StructForge/backend/apps/gateway/internal/router"
 	"StructForge/backend/apps/gateway/internal/server"
-
 	"github.com/go-kratos/kratos/v2"
 )
 
@@ -34,8 +33,9 @@ func wireApp(bc *conf.Bootstrap, redis *conf.Redis) (*kratos.App, func(), error)
 	metricsMetrics := metrics.NewMetrics()
 	metricsMiddleware := metrics.NewMetricsMiddleware(metricsMetrics)
 	gatewayHandler := handler.NewGatewayHandler(routerRouter, manager, corsHandler, metricsMiddleware)
+	dashboardHandler := handler.NewDashboardHandler()
 	logger := newLogger()
-	app := newApp(bc, httpServer, gatewayHandler, logger)
+	app := newApp(bc, httpServer, gatewayHandler, dashboardHandler, logger)
 	return app, func() {
 	}, nil
 }

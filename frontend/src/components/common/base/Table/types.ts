@@ -5,12 +5,13 @@ export interface TableColumn {
   minWidth?: string | number
   fixed?: boolean | 'left' | 'right'
   sortable?: boolean
-  formatter?: (row: any, column: TableColumn, cellValue: any) => any
+  formatter?: (row: unknown, column: TableColumn, cellValue: unknown) => unknown
   align?: 'left' | 'center' | 'right'
+  slot?: string // 自定义插槽名称
 }
 
-export interface TableProps {
-  data: any[]
+export interface TableProps<T = unknown> {
+  data: T[]
   columns: TableColumn[]
   stripe?: boolean
   border?: boolean
@@ -23,9 +24,9 @@ export interface TableProps {
   maxHeight?: string | number
 }
 
-export interface TableEmits {
-  (e: 'selection-change', selection: any[]): void
-  (e: 'row-click', row: any, column: TableColumn, event: Event): void
+export interface TableEmits<T = unknown> {
+  (e: 'selection-change', selection: T[]): void
+  (e: 'row-click', row: T, column: TableColumn, event: Event): void
   (e: 'sort-change', sortInfo: { column: TableColumn; prop: string; order: string }): void
 }
 

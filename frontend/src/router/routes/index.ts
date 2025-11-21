@@ -118,14 +118,16 @@ const aiRoutes: RouteRecordRaw[] = [
 
 // 整合所有路由
 export const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    redirect: '/dashboard'
-  },
+  // 认证路由（不需要布局）
   ...authRoutes,
+  // 主布局路由（需要认证的页面）
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
+    redirect: '/dashboard',
+    meta: {
+      requiresAuth: true, // 整个布局都需要认证
+    },
     children: [
       ...dashboardRoutes,
       ...workflowRoutes,
@@ -134,6 +136,7 @@ export const routes: RouteRecordRaw[] = [
       ...systemRoutes,
     ]
   },
+  // 404 路由
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

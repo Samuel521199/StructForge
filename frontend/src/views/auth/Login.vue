@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page">
+  <div class="login-page auth-page">
     <!-- 
       使用配置文件：修改 config.json 文件即可调整效果参数
       配置文件位置：frontend/src/components/common/effects/CodeRain/config.json
@@ -61,6 +61,7 @@
             :loading="loading"
             native-type="submit"
             class="login-button"
+            @click="handleSubmit"
           >
             登录
           </Button>
@@ -110,30 +111,78 @@ const rules = {
   ],
 }
 
-const handleSubmit = async () => {
-  if (!formRef.value) return
+const handleSubmit = async (event?: Event) => {
+  if (event) {
+    event.preventDefault()
+  }
+  
+  if (!formRef.value) {
+    console.warn('Form ref is not available')
+    return
+  }
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
-
-    loading.value = true
-    try {
-      const result = await authStore.login(form.username, form.password)
-      if (result) {
-        success('登录成功')
-        // 跳转到之前访问的页面或首页
-        const redirect = router.currentRoute.value.query.redirect as string
-        router.push(redirect || '/')
-      } else {
-        error('登录失败，请检查用户名和密码')
+  try {
+    await formRef.value.validate(async (valid) => {
+      if (!valid) {
+        console.warn('Form validation failed')
+        return
       }
-    } catch (err) {
-      error('登录失败，请稍后重试')
-      console.error('Login error:', err)
-    } finally {
-      loading.value = false
-    }
-  })
+
+      loading.value = true
+      console.log('Starting login with:', { username: form.username })
+      
+      try {
+        const result = await authStore.login(form.username, form.password)
+        console.log('Login result:', result)
+        
+        if (result) {
+          success('登录成功')
+          // 等待一下确保状态已更新
+          await new Promise(resolve => setTimeout(resolve, 200))
+          
+          // 检查认证状态
+          if (!authStore.isAuthenticated) {
+            console.warn('登录成功但认证状态未更新，等待重试...')
+            await new Promise(resolve => setTimeout(resolve, 300))
+          }
+          
+          // 跳转到之前访问的页面或首页
+          const redirect = router.currentRoute.value.query.redirect as string
+          const targetPath = redirect || '/dashboard'
+          console.log('Navigating to:', targetPath, 'isAuthenticated:', authStore.isAuthenticated)
+          
+          try {
+            // 使用 push 而不是 replace，这样用户可以返回
+            await router.push(targetPath)
+            console.log('Navigation successful')
+          } catch (err) {
+            console.error('Navigation error:', err)
+            // 如果路由跳转失败，可能是路由守卫阻止了，尝试刷新页面
+            if (err instanceof Error && err.message.includes('Navigation')) {
+              // 路由守卫可能阻止了导航，等待一下再试
+              await new Promise(resolve => setTimeout(resolve, 500))
+              window.location.href = targetPath
+            }
+          }
+        } else {
+          error('登录失败，请检查用户名和密码')
+        }
+      } catch (err: any) {
+        console.error('Login error:', err)
+        // 检查是否是网络错误
+        if (err?.type === 'NETWORK' || err?.code === 'ERR_NETWORK' || err?.message?.includes('Network')) {
+          error('无法连接到服务器，请确保后端服务正在运行')
+        } else {
+          error('登录失败，请稍后重试')
+        }
+      } finally {
+        loading.value = false
+      }
+    })
+  } catch (err) {
+    console.error('Form validation error:', err)
+    error('表单验证失败，请检查输入')
+  }
 }
 
 const goToRegister = () => {
@@ -229,37 +278,208 @@ onMounted(() => {
     color: rgba(255, 255, 255, 0.9);
   }
   
-  :deep(.el-input__wrapper) {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(0, 255, 0, 0.3);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.1);
+  // 输入框包装器样式 - 深灰色半透明背景（最外层）
+  // 使用最具体的选择器确保覆盖所有状态和 Element Plus 默认样式
+  :deep(.el-form-item .el-input__wrapper),
+  :deep(.el-form-item .el-input .el-input__wrapper),
+  :deep(.el-input__wrapper),
+  :deep(.el-input.is-disabled .el-input__wrapper),
+  :deep(.el-input.is-error .el-input__wrapper),
+  :deep(.el-input.is-success .el-input__wrapper),
+  :deep(.el-form-item.is-error .el-input__wrapper),
+  :deep(.el-form-item.is-success .el-input__wrapper) {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6) !important; // 兼容性写法
+    border: 1px solid rgba(0, 255, 0, 0.3) !important;
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+    
+    // 内部输入元素设为透明
+    .el-input__inner {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 前缀和后缀区域也设为透明
+    .el-input__prefix,
+    .el-input__suffix {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 前缀和后缀内部元素
+    .el-input__prefix-inner,
+    .el-input__suffix-inner {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 所有子元素都设为透明（除了包装器本身）
+    > * {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
     
     &:hover {
-      border-color: rgba(0, 255, 0, 0.5);
-      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+      background-color: rgba(40, 40, 40, 0.7) !important;
+      background: rgba(40, 40, 40, 0.7) !important;
+      border-color: rgba(0, 255, 0, 0.5) !important;
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2) !important;
     }
     
     &.is-focus {
-      border-color: rgba(0, 255, 0, 0.6);
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+      background-color: rgba(50, 50, 50, 0.75) !important;
+      background: rgba(50, 50, 50, 0.75) !important;
+      border-color: rgba(0, 255, 0, 0.6) !important;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3) !important;
+    }
+    
+    // 当输入框有内容时（非 placeholder 状态）保持深灰色背景
+    &:has(.el-input__inner:not(:placeholder-shown)) {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+    }
+    
+    // 聚焦且有内容时
+    &.is-focus:has(.el-input__inner:not(:placeholder-shown)) {
+      background-color: rgba(50, 50, 50, 0.75) !important;
+      background: rgba(50, 50, 50, 0.75) !important;
+    }
+    
+    // 错误状态也使用深灰色背景
+    &.is-error {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+      border-color: rgba(255, 0, 0, 0.5) !important;
     }
   }
   
-  :deep(.el-input__inner) {
-    color: #00FF00;
+  // 输入框内部文字样式 - 覆盖所有状态
+  :deep(.el-input__inner),
+  :deep(.el-input.is-disabled .el-input__inner),
+  :deep(.el-input.is-error .el-input__inner),
+  :deep(.el-input.is-success .el-input__inner) {
+    color: rgba(0, 255, 0, 0.9) !important;
+    background-color: transparent !important;
+    background: transparent !important;
+    
+    // 当输入框有内容时（非 placeholder 状态）
+    &:not(:placeholder-shown) {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 聚焦状态
+    &:focus {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
     
     &::placeholder {
-      color: rgba(0, 255, 0, 0.4);
+      color: rgba(0, 255, 0, 0.4) !important;
+    }
+  }
+  
+  // 确保输入框组件本身透明（但不影响包装器）
+  :deep(.el-input),
+  :deep(.el-input.is-disabled),
+  :deep(.el-input.is-error),
+  :deep(.el-input.is-success) {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  // 覆盖所有可能的输入框状态
+  :deep(.el-input.is-disabled .el-input__wrapper),
+  :deep(.el-input.is-disabled .el-input__inner),
+  :deep(.el-input.is-error .el-input__wrapper),
+  :deep(.el-input.is-error .el-input__inner) {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6) !important;
+  }
+  
+  // 确保输入框的所有内部容器都没有白色背景
+  :deep(.el-input__container) {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  // 强制覆盖所有可能的白色背景 - 使用最高优先级
+  :deep(.el-input),
+  :deep(.el-input *),
+  :deep(.el-input__wrapper),
+  :deep(.el-input__wrapper *),
+  :deep(.el-input__inner),
+  :deep(.el-input__inner *) {
+    // 确保没有白色背景
+    &[style*="background"],
+    &[style*="background-color"] {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+  }
+  
+  // 特别处理包装器，确保它保持深灰色背景
+  :deep(.el-input__wrapper) {
+    &,
+    &[style*="background"],
+    &[style*="background-color"] {
+      background-color: rgba(30, 30, 30, 0.6) !important;
+      background: rgba(30, 30, 30, 0.6) !important;
+    }
+  }
+  
+  // 输入框前缀图标颜色
+  :deep(.el-input__prefix) {
+    .el-input__prefix-inner {
+      color: rgba(0, 255, 0, 0.6) !important;
+    }
+  }
+  
+  // 输入框后缀图标颜色（清除按钮、显示密码按钮等）
+  :deep(.el-input__suffix) {
+    .el-input__suffix-inner {
+      color: rgba(0, 255, 0, 0.6) !important;
+      
+      .el-input__clear {
+        color: rgba(0, 255, 0, 0.6) !important;
+        
+        &:hover {
+          color: rgba(0, 255, 0, 0.9) !important;
+        }
+      }
     }
   }
   
   :deep(.el-checkbox__label) {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(124, 121, 121, 0.575);
   }
   
+  // 复选框未选中状态的背景透明度
+  :deep(.el-checkbox__inner) {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    border-color: rgba(0, 255, 0, 0.3) !important;
+    
+    &:hover {
+      background-color: rgba(40, 40, 40, 0.7) !important;
+      border-color: rgba(0, 255, 0, 0.5) !important;
+    }
+  }
+  
+  // 复选框选中状态的样式
   :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-    background-color: #00FF00;
-    border-color: #00FF00;
+    background-color: #00FF00 !important;
+    border-color: #00FF00 !important;
+    
+    &::after {
+      border-color: #000000 !important;
+    }
+  }
+  
+  // 复选框禁用状态
+  :deep(.el-checkbox.is-disabled .el-checkbox__inner) {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border-color: rgba(0, 255, 0, 0.2) !important;
   }
   
   :deep(.el-button--primary) {

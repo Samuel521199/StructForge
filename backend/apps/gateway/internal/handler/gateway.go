@@ -61,7 +61,7 @@ func NewGatewayHandler(router *router.Router, jwtManager *jwtMiddleware.Manager,
 }
 
 // RegisterRoutes 注册路由
-func (h *GatewayHandler) RegisterRoutes(srv *kratosHttp.Server) {
+func (h *GatewayHandler) RegisterRoutes(srv *kratosHttp.Server, dashboardHandler *DashboardHandler) {
 	// 注册健康检查路由（不需要认证）
 	srv.Route("/").GET("/health", h.Health)
 	srv.Route("/api/v1").GET("/health", h.Health)
@@ -69,6 +69,14 @@ func (h *GatewayHandler) RegisterRoutes(srv *kratosHttp.Server) {
 	// 注册Kubernetes探针路由
 	srv.Route("/").GET("/ready", h.Readiness)
 	srv.Route("/").GET("/live", h.Liveness)
+
+	// 注册 Dashboard 路由（直接处理，不需要代理）
+	dashboardRoute := srv.Route("/api/v1/dashboard")
+	dashboardRoute.GET("/stats", dashboardHandler.GetStats)
+	dashboardRoute.GET("/executions", dashboardHandler.GetExecutions)
+	dashboardRoute.GET("/success-rate", dashboardHandler.GetSuccessRate)
+	dashboardRoute.GET("/error-trend", dashboardHandler.GetErrorTrend)
+	dashboardRoute.GET("/execution-duration", dashboardHandler.GetExecutionDuration)
 
 	// 注册通用路由转发（使用通配符匹配所有 /api/v1/* 请求）
 	// 注意：Kratos 的路由匹配机制

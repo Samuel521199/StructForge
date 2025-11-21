@@ -9,6 +9,7 @@
     :disabled="disabled"
     v-bind="$attrs"
     @validate="handleValidate"
+    @submit="handleSubmit"
   >
     <slot />
   </el-form>
@@ -19,7 +20,7 @@ import { ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import type { FormProps, FormEmits } from './types'
 
-const props = withDefaults(defineProps<FormProps>(), {
+withDefaults(defineProps<FormProps>(), {
   labelWidth: '100px',
   labelPosition: 'right',
   size: 'default',
@@ -34,10 +35,19 @@ const handleValidate = (prop: string, isValid: boolean, message: string) => {
   emit('validate', prop, isValid, message)
 }
 
+const handleSubmit = (event: Event) => {
+  event.preventDefault()
+  emit('submit', event)
+}
+
 // 暴露表单方法
 defineExpose({
-  validate: () => formRef.value?.validate(),
-  validateField: (props: string | string[]) => formRef.value?.validateField(props),
+  validate: (callback?: (valid: boolean, fields?: any) => void) => {
+    return formRef.value?.validate(callback)
+  },
+  validateField: (props: string | string[], callback?: (valid: boolean, fields?: any) => void) => {
+    return formRef.value?.validateField(props, callback)
+  },
   resetFields: () => formRef.value?.resetFields(),
   clearValidate: (props?: string | string[]) => formRef.value?.clearValidate(props),
   scrollToField: (prop: string) => formRef.value?.scrollToField(prop),

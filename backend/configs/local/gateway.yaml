@@ -49,12 +49,21 @@ gateway:
         service: "user-service"
         target_path: "/api/v1/users/me"
         require_auth: true
-        timeout: 30
+      
+      # 头像上传路由（需要认证）
+      - path: "/api/v1/users/avatar"
+        match_type: "exact"
+        service: "user-service"
+        target_path: "/api/v1/users/avatar"
+        require_auth: true
+        timeout: 60  # 文件上传需要更长的超时时间
         retries: 2
         load_balance_strategy: "round_robin"
         rate_limit:
           qps: 50
           burst: 100
+        cache:
+          enabled: false  # 文件上传不缓存
         circuit_breaker:
           enabled: true
           failure_threshold: 0.5  # 50% 失败率触发熔断

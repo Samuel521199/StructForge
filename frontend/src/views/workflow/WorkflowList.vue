@@ -4,7 +4,10 @@
       <template #header>
         <div class="list-header">
           <h2>工作流列表</h2>
-          <Button type="primary" :icon="Plus" @click="handleCreate">
+          <Button type="primary" @click="handleCreate">
+            <template #icon>
+              <Icon :icon="Plus" />
+            </template>
             创建工作流
           </Button>
         </div>
@@ -55,7 +58,7 @@
 
       <!-- 分页 -->
       <div class="list-pagination">
-        <el-pagination
+        <Pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
           :total="pagination.total"
@@ -73,17 +76,17 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
-import { Card, Button, Table, SearchBar, StatusTag } from '@/components/common'
-import { useWorkflowStore } from '@/stores/modules/workflow.store'
-import { success, error } from '@/components/common/base/Message'
+import { Card, Button, Table, Pagination, SearchBar, StatusTag } from '@/components/common'
+import { success } from '@/components/common/base/Message'
+import { workflowService } from '@/api/services/workflow.service'
 import type { TableColumn } from '@/components/common/base/Table/types'
+import type { WorkflowListItem } from '@/api/types/workflow.types'
 
 const router = useRouter()
-const workflowStore = useWorkflowStore()
 
 const loading = ref(false)
 const searchKeyword = ref('')
-const workflowList = ref<any[]>([])
+const workflowList = ref<WorkflowListItem[]>([])
 
 const filters = [
   {
@@ -118,30 +121,26 @@ const pagination = reactive({
 const loadWorkflows = async () => {
   loading.value = true
   try {
-    // TODO: 调用API获取工作流列表
-    // const response = await workflowService.getWorkflowList({
-    //   page: pagination.page,
-    //   pageSize: pagination.pageSize,
-    //   keyword: searchKeyword.value,
-    // })
-    // workflowList.value = response.data.list
-    // pagination.total = response.data.total
-
-    // 模拟数据
-    workflowList.value = [
-      {
-        id: '1',
-        name: '示例工作流1',
-        description: '这是一个示例工作流',
-        status: 'running',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ]
-    pagination.total = 1
+    const response = await workflowService.getWorkflows({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      search: searchKeyword.value,
+    })
+    
+    if (response.data) {
+      workflowList.value = response.data.list
+      pagination.total = response.data.total
+    } else {
+      // 如果没有数据，使用空数组
+      workflowList.value = []
+      pagination.total = 0
+    }
   } catch (err) {
-    error('加载工作流列表失败')
+    // 错误已在 errorHandler 中处理，这里只记录日志
     console.error('Load workflows error:', err)
+    // 如果请求失败，使用空数组
+    workflowList.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -163,23 +162,25 @@ const handleCreate = () => {
   router.push('/workflow/editor')
 }
 
-const handleEdit = (row: any) => {
+const handleEdit = (row: WorkflowListItem) => {
   router.push(`/workflow/editor/${row.id}`)
 }
 
-const handleDelete = async (row: any) => {
+const handleDelete = async (row: WorkflowListItem) => {
   // TODO: 实现删除确认对话框
   try {
-    // await workflowService.deleteWorkflow(row.id)
+    await workflowService.deleteWorkflow(row.id)
     success('删除成功')
     loadWorkflows()
   } catch (err) {
-    error('删除失败')
+    // 错误已在 errorHandler 中处理，这里只记录日志
+    console.error('Delete workflow error:', err)
   }
 }
 
-const handleRowClick = (row: any) => {
-  router.push(`/workflow/detail/${row.id}`)
+const handleRowClick = (row: unknown) => {
+  const workflow = row as WorkflowListItem
+  router.push(`/workflow/detail/${workflow.id}`)
 }
 
 const handleSizeChange = (size: number) => {

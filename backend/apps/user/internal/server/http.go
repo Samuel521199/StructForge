@@ -8,6 +8,7 @@ import (
 
 	v1 "StructForge/backend/api/user/v1"
 	"StructForge/backend/apps/user/internal/conf"
+	"StructForge/backend/apps/user/internal/handler"
 	"StructForge/backend/apps/user/internal/service"
 )
 
@@ -37,6 +38,9 @@ func NewHTTPServer(c *conf.Bootstrap, userService *service.UserService) *http.Se
 
 	srv := http.NewServer(opts...)
 	v1.RegisterUserServiceHTTPServer(srv, userService)
+
+	// 注册自定义路由（头像上传）
+	srv.Route("/api/v1/users").POST("/avatar", handler.UploadAvatar)
 
 	return srv
 }

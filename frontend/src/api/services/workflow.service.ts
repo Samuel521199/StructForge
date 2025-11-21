@@ -4,38 +4,42 @@
 
 import { apiClient } from '../client'
 import type { ApiResponse } from '../client/types'
-
-export interface Workflow {
-  id: string
-  name: string
-  description?: string
-  nodes: any[]
-  edges: any[]
-  status: 'draft' | 'active' | 'archived'
-  createdAt: string
-  updatedAt: string
-}
+import type {
+  Workflow,
+  Node,
+  Edge,
+  WorkflowListParams,
+  WorkflowListResponse,
+} from '../types/workflow.types'
 
 export interface CreateWorkflowRequest {
   name: string
   description?: string
-  nodes?: any[]
-  edges?: any[]
+  nodes?: Node[]
+  edges?: Edge[]
 }
 
 export interface UpdateWorkflowRequest {
   name?: string
   description?: string
-  nodes?: any[]
-  edges?: any[]
-  status?: string
+  nodes?: Node[]
+  edges?: Edge[]
+  status?: Workflow['status']
+}
+
+export interface ExecuteWorkflowRequest {
+  params?: Record<string, unknown>
+}
+
+export interface ExecuteWorkflowResponse {
+  executionId: string
 }
 
 export const workflowService = {
   /**
    * 获取工作流列表
    */
-  getWorkflows(params?: { page?: number; pageSize?: number; search?: string }): Promise<ApiResponse<{ list: Workflow[]; total: number }>> {
+  getWorkflows(params?: WorkflowListParams): Promise<ApiResponse<WorkflowListResponse>> {
     return apiClient.get('/v1/workflows', { params })
   },
 
@@ -70,8 +74,8 @@ export const workflowService = {
   /**
    * 执行工作流
    */
-  executeWorkflow(id: string, params?: Record<string, any>): Promise<ApiResponse<{ executionId: string }>> {
-    return apiClient.post(`/v1/workflows/${id}/execute`, params)
+  executeWorkflow(id: string, data?: ExecuteWorkflowRequest): Promise<ApiResponse<ExecuteWorkflowResponse>> {
+    return apiClient.post(`/v1/workflows/${id}/execute`, data)
   },
 }
 

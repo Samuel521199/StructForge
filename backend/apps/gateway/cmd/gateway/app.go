@@ -14,10 +14,11 @@ func newApp(
 	bc *conf.Bootstrap,
 	httpSrv *http.Server,
 	gatewayHandler *handler.GatewayHandler,
+	dashboardHandler *handler.DashboardHandler,
 	logger log.Logger,
 ) *kratos.App {
 	// 注册路由
-	gatewayHandler.RegisterRoutes(httpSrv)
+	gatewayHandler.RegisterRoutes(httpSrv, dashboardHandler)
 
 	// 创建应用实例
 	opts := []kratos.Option{

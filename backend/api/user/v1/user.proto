@@ -86,6 +86,14 @@ service UserService {
       body: "*"
     };
   }
+
+  // 上传头像
+  rpc UploadAvatar(UploadAvatarRequest) returns (UploadAvatarResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/avatar"
+      body: "*"
+    };
+  }
 }
 
 // 用户信息
@@ -240,5 +248,19 @@ message ResetPasswordRequest {
 message ResetPasswordResponse {
   bool success = 1;                      // 是否成功
   string message = 2;                    // 消息
+}
+
+// 上传头像请求
+message UploadAvatarRequest {
+  bytes avatar_data = 1;                 // 头像图片数据（base64编码或二进制）
+  string file_name = 2;                  // 文件名
+  string content_type = 3;               // 内容类型（image/jpeg, image/png等）
+}
+
+// 上传头像响应
+message UploadAvatarResponse {
+  bool success = 1;                      // 是否成功
+  string message = 2;                    // 消息
+  string avatar_url = 3;                 // 头像URL
 }
 

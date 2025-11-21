@@ -4,13 +4,16 @@
     :size="size"
     :disabled="disabled"
     :loading="loading"
-    :icon="icon"
+    :icon="typeof icon === 'string' ? icon : undefined"
     :round="round"
     :circle="circle"
     :plain="plain"
     :native-type="nativeType"
     @click="handleClick"
   >
+    <template v-if="icon && typeof icon === 'object'" #icon>
+      <component :is="icon" />
+    </template>
     <slot />
   </el-button>
 </template>

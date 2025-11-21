@@ -22,9 +22,7 @@
       <template #node-default="{ data }">
         <div class="workflow-node">
           <div class="workflow-node__header">
-            <el-icon class="workflow-node__icon">
-              <Circle />
-            </el-icon>
+            <Icon :icon="getNodeIconComponent(data.type)" class="workflow-node__icon" :size="16" />
             <span class="workflow-node__label">{{ data.label || data.type }}</span>
           </div>
           <div class="workflow-node__body">
@@ -48,20 +46,31 @@
         </div>
       </template>
 
-      <!-- 背景 -->
-      <Background />
-      <!-- 小地图 -->
-      <MiniMap />
-      <!-- 控制面板 -->
-      <Controls />
+      <!-- 背景、小地图、控制面板等通过 VueFlow 组件配置 -->
     </VueFlow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Circle } from '@element-plus/icons-vue'
-import { VueFlow, Background, MiniMap, Controls, Handle, Position, useVueFlow } from '@vue-flow/core'
+import { ref, computed } from 'vue'
+import { Icon } from '@/components/common/base'
+import {
+  Link as LinkIcon,
+  Clock,
+  Pointer,
+  Document,
+  Picture,
+  Refresh,
+  Filter,
+  DataAnalysis,
+  Switch,
+  RefreshRight,
+  Grid,
+  Connection,
+  Folder,
+  Cpu,
+} from '@element-plus/icons-vue'
+import { VueFlow, Handle, Position, useVueFlow } from '@vue-flow/core'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 
@@ -115,35 +124,35 @@ const localEdges = computed({
   set: (value) => emit('update:edges', value),
 })
 
-// 获取节点图标
-const getNodeIcon = (type: string) => {
-  const iconMap: Record<string, string> = {
-    webhook: 'Link',
-    timer: 'Clock',
-    manual: 'Pointer',
-    'text-generation': 'Document',
-    'image-generation': 'Picture',
-    'code-generation': 'Code',
-    transform: 'Refresh',
-    filter: 'Filter',
-    aggregate: 'DataAnalysis',
-    condition: 'Switch',
-    loop: 'RefreshRight',
-    parallel: 'Grid',
-    http: 'Connection',
-    database: 'Database',
-    file: 'Folder',
-    script: 'Document',
-    'code-executor': 'Cpu',
+// 获取节点图标组件
+const getNodeIconComponent = (type: string) => {
+  const iconMap: Record<string, unknown> = {
+    webhook: LinkIcon,
+    timer: Clock,
+    manual: Pointer,
+    'text-generation': Document,
+    'image-generation': Picture,
+    'code-generation': Document,
+    transform: Refresh,
+    filter: Filter,
+    aggregate: DataAnalysis,
+    condition: Switch,
+    loop: RefreshRight,
+    parallel: Grid,
+    http: Connection,
+    database: Connection,
+    file: Folder,
+    script: Document,
+    'code-executor': Cpu,
   }
-  return iconMap[type] || 'Circle'
+  return iconMap[type] || Document
 }
 
-const handleNodesChange = (changes: any[]) => {
+const handleNodesChange = () => {
   // 处理节点变化
 }
 
-const handleEdgesChange = (changes: any[]) => {
+const handleEdgesChange = () => {
   // 处理边变化
 }
 
@@ -202,7 +211,7 @@ const handleDrop = (event: DragEvent) => {
         type: nodeData.type,
         label: nodeData.label,
         inputs: getDefaultInputs(nodeData.type),
-        outputs: getDefaultOutputs(nodeData.type),
+        outputs: getDefaultOutputs(),
       },
     }
 
@@ -225,7 +234,7 @@ const getDefaultInputs = (type: string): Array<{ id: string; label: string }> =>
 }
 
 // 获取默认输出端口
-const getDefaultOutputs = (type: string): Array<{ id: string; label: string }> => {
+const getDefaultOutputs = (): Array<{ id: string; label: string }> => {
   // 所有节点默认有一个输出
   return [{ id: 'output-1', label: '输出' }]
 }

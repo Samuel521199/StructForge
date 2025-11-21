@@ -2,7 +2,70 @@
  * 全局样式入口
  */
 
-@import './variables';
-@import './mixins';
-@import './reset';
+// 使用 @use 替代 @import（Dart Sass 推荐方式）
+@use './variables' as *;
+@use './mixins' as *;
+@use './reset' as *;
+@use './glassmorphism' as *;
+
+/**
+ * 全局输入框样式覆盖 - 确保在登录/注册页面使用深灰色背景
+ * 注意：这些样式只影响认证相关页面，其他页面使用默认样式
+ * 
+ * 注意：Element Plus 样式覆盖已移至 element-override.scss
+ * 这里保留作为备用覆盖规则
+ */
+.auth-page {
+  // 输入框包装器 - 深灰色半透明背景（覆盖所有状态和所有可能的类名）
+  // 使用最具体的选择器确保覆盖 Element Plus 默认样式
+  .el-form-item .el-input .el-input__wrapper,
+  .el-form-item .el-input__wrapper,
+  .el-input__wrapper,
+  .el-input.is-disabled .el-input__wrapper,
+  .el-input.is-error .el-input__wrapper,
+  .el-input.is-success .el-input__wrapper,
+  .el-form-item.is-error .el-input__wrapper,
+  .el-form-item.is-success .el-input__wrapper {
+    background-color: rgba(30, 30, 30, 0.6) !important;
+    background: rgba(30, 30, 30, 0.6) !important;
+    
+    // 内部元素透明
+    .el-input__inner {
+      background-color: transparent !important;
+      background: transparent !important;
+      color: rgba(0, 255, 0, 0.9) !important;
+    }
+    
+    .el-input__prefix,
+    .el-input__suffix {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+    
+    // 所有直接子元素透明
+    > * {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+  }
+  
+  // 输入框组件本身透明（覆盖所有状态）
+  .el-input,
+  .el-input.is-disabled,
+  .el-input.is-error,
+  .el-input.is-success {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  // 输入框内部元素透明（覆盖所有状态）
+  .el-input__inner,
+  .el-input.is-disabled .el-input__inner,
+  .el-input.is-error .el-input__inner,
+  .el-input.is-success .el-input__inner {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: rgba(0, 255, 0, 0.9) !important;
+  }
+}
 

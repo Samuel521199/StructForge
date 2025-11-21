@@ -1,0 +1,385 @@
+/**
+ * 玻璃拟物（Glassmorphism）样式库
+ * 用于实现水晶科幻感的 UI 效果
+ */
+
+// ==================== 颜色变量 ====================
+// 玻璃拟物专用颜色
+$glass-bg-dark: rgba(20, 20, 30, 0.6);
+$glass-bg-light: rgba(30, 30, 40, 0.4);
+$glass-border-cyan: rgba(0, 212, 255, 0.3);
+$glass-border-green: rgba(0, 255, 136, 0.3);
+$glass-border-purple: rgba(183, 148, 246, 0.3);
+$glass-border-orange: rgba(255, 184, 77, 0.3);
+
+// 霓虹光晕颜色
+$neon-cyan: #00d4ff;
+$neon-green: #00ff88;
+$neon-purple: #b794f6;
+$neon-orange: #ffb84d;
+$neon-blue: #6c8eff;
+
+// 背景渐变颜色
+$bg-deep-blue: rgba(10, 10, 26, 0.98);
+$bg-nebula-purple: rgba(26, 10, 35, 0.95);
+$bg-dark-blue: rgba(10, 15, 30, 0.98);
+
+// ==================== Mixin ====================
+
+/**
+ * 玻璃拟物基础样式
+ * @param $blur: 模糊度 (默认 25px)
+ * @param $saturate: 饱和度 (默认 180%)
+ * @param $bg: 背景色 (默认 $glass-bg-dark)
+ */
+@mixin glassmorphism($blur: 25px, $saturate: 180%, $bg: $glass-bg-dark) {
+  background: $bg;
+  backdrop-filter: blur($blur) saturate($saturate);
+  -webkit-backdrop-filter: blur($blur) saturate($saturate);
+}
+
+/**
+ * 霓虹边框光晕（赛博朋克风格）
+ * @param $color: 光晕颜色 (默认 $neon-cyan)
+ * @param $opacity: 透明度 (默认 0.3)
+ */
+@mixin neon-border($color: $neon-cyan, $opacity: 0.3) {
+  border: 2px solid rgba($color, $opacity);
+  box-shadow: 
+    // 外光晕（多层）
+    0 0 10px rgba($color, $opacity * 0.8),
+    0 0 20px rgba($color, $opacity * 0.6),
+    0 0 30px rgba($color, $opacity * 0.4),
+    0 0 40px rgba($color, $opacity * 0.2),
+    // 内光晕
+    inset 0 0 20px rgba($color, $opacity * 0.3),
+    inset 0 0 40px rgba($color, $opacity * 0.1);
+  position: relative;
+  
+  // 边框光效动画层
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(135deg, 
+      rgba($color, 0.6) 0%,
+      rgba($color, 0.3) 25%,
+      transparent 50%,
+      rgba($color, 0.3) 75%,
+      rgba($color, 0.6) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    z-index: -1;
+    animation: borderGlow 3s ease-in-out infinite;
+  }
+}
+
+/**
+ * 多层阴影（微立体感）
+ * @param $color: 光晕颜色 (默认 $neon-cyan)
+ * @param $intensity: 强度 (默认 0.1)
+ */
+@mixin soft-3d-shadow($color: $neon-cyan, $intensity: 0.1) {
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba($color, $intensity) inset,
+    0 0 60px rgba($color, $intensity * 0.5);
+}
+
+/**
+ * 悬浮效果
+ * @param $color: 光晕颜色 (默认 $neon-cyan)
+ */
+@mixin hover-lift($color: $neon-cyan) {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      0 0 40px rgba($color, 0.2) inset,
+      0 0 80px rgba($color, 0.1);
+    border-color: rgba($color, 0.5);
+  }
+}
+
+// ==================== 全局背景 ====================
+
+/**
+ * 全局背景样式
+ * 应用于 body 和 #app
+ */
+@mixin global-background {
+  min-height: 100vh;
+  background: 
+    // 基础渐变
+    linear-gradient(180deg, $bg-deep-blue 0%, $bg-nebula-purple 50%, $bg-dark-blue 100%),
+    // 星云紫渐变
+    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.25) 0%, transparent 60%),
+    // 深海蓝渐变
+    radial-gradient(ellipse at 100% 100%, rgba(30, 58, 138, 0.3) 0%, transparent 60%),
+    // 蓝绿光晕
+    radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.15) 0%, transparent 70%),
+    // 紫粉光晕
+    radial-gradient(ellipse at 80% 20%, rgba(183, 148, 246, 0.12) 0%, transparent 50%);
+  background-attachment: fixed;
+  background-size: cover;
+  position: relative;
+  overflow-x: hidden;
+  
+  // 赛博朋克网格线（使用伪元素）
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      // 水平网格线（青色）
+      repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 99px,
+        rgba(0, 212, 255, 0.1) 100px,
+        rgba(0, 212, 255, 0.1) 101px
+      ),
+      // 垂直网格线（青色）
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 99px,
+        rgba(0, 212, 255, 0.1) 100px,
+        rgba(0, 212, 255, 0.1) 101px
+      ),
+      // 噪点纹理
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0px, transparent 1px, transparent 2px, rgba(255, 255, 255, 0.03) 3px),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0px, transparent 1px, transparent 2px, rgba(255, 255, 255, 0.03) 3px);
+    pointer-events: none;
+    opacity: 0.6;
+    z-index: 0;
+    animation: backgroundGlow 8s ease-in-out infinite, gridScan 20s linear infinite;
+  }
+  
+  // 动态光效层
+  &::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      // 扫描线效果
+      repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 212, 255, 0.03) 3px,
+        rgba(0, 212, 255, 0.03) 4px
+      ),
+      // 动态光点
+      radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.15) 0%, transparent 30%),
+      radial-gradient(circle at 80% 70%, rgba(0, 255, 136, 0.12) 0%, transparent 30%),
+      radial-gradient(circle at 50% 50%, rgba(183, 148, 246, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+    animation: lightMove 15s ease-in-out infinite;
+  }
+}
+
+// ==================== 动画 ====================
+
+@keyframes backgroundGlow {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(0, 212, 255, 0.3),
+      inset 0 0 15px rgba(0, 212, 255, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(0, 212, 255, 0.5),
+      inset 0 0 20px rgba(0, 212, 255, 0.2);
+  }
+}
+
+@keyframes cardFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes iconGlowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 16px currentColor) drop-shadow(0 0 8px currentColor);
+  }
+}
+
+// 赛博朋克动画
+@keyframes gridScan {
+  0% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(100px);
+    opacity: 0.4;
+  }
+}
+
+@keyframes lightMove {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  75% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes borderGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: rotate(0deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: rotate(180deg);
+  }
+}
+
+// 赛博朋克扫描线动画
+@keyframes cyberScan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+// ==================== 工具类 ====================
+
+.glass-card {
+  @include glassmorphism(25px, 180%, $glass-bg-dark);
+  @include neon-border($neon-cyan, 0.4);
+  @include soft-3d-shadow($neon-cyan, 0.15);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  
+  // 内部光晕层
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top, rgba(0, 212, 255, 0.15) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  // 赛博朋克装饰角
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border-top: 2px solid $neon-cyan;
+    border-left: 2px solid $neon-cyan;
+    border-radius: 16px 0 0 0;
+    box-shadow: 
+      -2px -2px 10px rgba(0, 212, 255, 0.5),
+      -2px -2px 20px rgba(0, 212, 255, 0.3);
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .glass-card-content {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// 赛博朋克网格背景（用于空白区域）
+.cyber-grid-bg {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      // 细网格
+      repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 19px,
+        rgba(0, 212, 255, 0.05) 20px,
+        rgba(0, 212, 255, 0.05) 21px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 19px,
+        rgba(0, 212, 255, 0.05) 20px,
+        rgba(0, 212, 255, 0.05) 21px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 30% 40%, rgba(0, 212, 255, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 70% 60%, rgba(0, 255, 136, 0.06) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+    animation: lightMove 12s ease-in-out infinite;
+  }
+  
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+

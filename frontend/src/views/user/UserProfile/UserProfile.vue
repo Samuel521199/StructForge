@@ -11,24 +11,22 @@
         <!-- 用户信息卡片 -->
         <div class="profile-card">
           <div class="profile-avatar">
-            <el-avatar :size="100" :src="form.avatar">
-              {{ userDisplayName }}
-            </el-avatar>
-            <el-upload
+            <Avatar :size="100" :src="form.avatar" :text="userDisplayName" />
+            <Upload
               class="avatar-upload"
               :action="uploadAction"
               :show-file-list="false"
-              :on-success="handleAvatarSuccess"
-              :before-upload="beforeAvatarUpload"
               :headers="uploadHeaders"
+              :before-upload="beforeAvatarUpload"
+              @success="handleAvatarSuccess"
             >
-              <el-button
+              <Button
                 type="primary"
                 :icon="Camera"
                 circle
                 class="avatar-upload-btn"
               />
-            </el-upload>
+            </Upload>
           </div>
 
           <div class="profile-info">
@@ -75,13 +73,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Camera } from '@element-plus/icons-vue'
-import { Card, Form, FormItem, Input, Button } from '@/components/common/base'
+import { Card, Form, FormItem, Input, Button, Avatar, Upload } from '@/components/common/base'
 import { useUserStore } from '@/stores/modules/user.store'
 import { useAuthStore } from '@/stores/modules/auth.store'
 import { userService } from '@/api/services/user.service'
 import { success, error } from '@/components/common/base/Message'
-import type { FormInstance, FormRules, UploadProps } from 'element-plus'
-import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import type { UploadProps } from '@/components/common/base/Upload/types'
 
 const userStore = useUserStore()
 const authStore = useAuthStore()
@@ -99,6 +97,8 @@ const form = reactive({
   username: '',
   email: '',
   avatar: '',
+  nickname: '',
+  bio: '',
 })
 
 const rules: FormRules = {
@@ -114,8 +114,8 @@ const rules: FormRules = {
 
 // 上传配置
 const uploadAction = computed(() => {
-  // TODO: 替换为实际的上传API地址
-  return '/api/v1/users/avatar'
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  return `${baseURL}/api/v1/users/avatar`
 })
 
 const uploadHeaders = computed(() => {
@@ -125,11 +125,23 @@ const uploadHeaders = computed(() => {
 })
 
 // 初始化表单
-onMounted(() => {
+onMounted(async () => {
+  // 加载用户信息
+  try {
+    const response = await userService.getUserInfo()
+    if (response.data) {
+      userStore.updateUser(response.data)
+    }
+  } catch (err) {
+    console.error('加载用户信息失败:', err)
+  }
+
   if (user.value) {
-    form.username = user.value.username
-    form.email = user.value.email
-    form.avatar = user.value.avatar || ''
+    form.username = user.value.username || ''
+    form.email = user.value.email || ''
+    form.avatar = user.value.profile?.avatarUrl || user.value.avatar || ''
+    form.nickname = user.value.profile?.nickname || ''
+    form.bio = user.value.profile?.bio || ''
   }
 })
 
@@ -138,30 +150,61 @@ const formatDate = (date?: string) => {
   return new Date(date).toLocaleString('zh-CN')
 }
 
-// 头像上传前验证
-const beforeAvatarUpload: UploadProps['beforeUpload'] = (file) => {
-  const isJPG = file.type === 'image/jpeg' || file.type === 'image/png'
-  const isLt2M = file.size / 1024 / 1024 < 2
+// 头像上传前验证和处理
+const beforeAvatarUpload: UploadProps['beforeUpload'] = async (file) => {
+  const isJPG = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp'
+  const isLt5M = file.size / 1024 / 1024 < 5
 
   if (!isJPG) {
-    ElMessage.error('头像图片只能是 JPG/PNG 格式!')
+    error('头像图片只能是 JPG/PNG/WebP 格式!')
     return false
   }
-  if (!isLt2M) {
-    ElMessage.error('头像图片大小不能超过 2MB!')
+  if (!isLt5M) {
+    error('头像图片大小不能超过 5MB!')
     return false
   }
-  return true
+
+  // 压缩和裁剪图片
+  try {
+    const { processAvatar } = await import('@/utils/imageCompress')
+    const processedFile = await processAvatar(file, {
+      maxWidth: 512,
+      maxHeight: 512,
+      quality: 0.85,
+      outputFormat: 'image/jpeg',
+      cropToCircle: false, // 不强制裁剪为圆形，保持原图比例
+    })
+    
+    // 替换原文件
+    Object.defineProperty(processedFile, 'name', {
+      writable: true,
+      value: file.name,
+    })
+    
+    return processedFile as any
+  } catch (err) {
+    console.error('图片处理失败:', err)
+    error('图片处理失败，请重试')
+    return false
+  }
 }
 
 // 头像上传成功
-const handleAvatarSuccess: UploadProps['onSuccess'] = (response: any) => {
-  if (response && response.data && response.data.url) {
+interface AvatarUploadResponse {
+  code?: number
+  data?: {
+    url?: string
+  }
+  message?: string
+}
+
+const handleAvatarSuccess = (response: AvatarUploadResponse) => {
+  if (response?.code === 200 && response?.data?.url) {
     form.avatar = response.data.url
     userStore.updateUser({ avatar: response.data.url })
     success('头像上传成功')
   } else {
-    error('头像上传失败')
+    error(response?.message || '头像上传失败')
   }
 }
 
@@ -174,10 +217,10 @@ const handleSave = async () => {
     loading.value = true
     try {
       const response = await userService.updateUserInfo({
-        username: form.username,
-        email: form.email,
-        avatar: form.avatar,
-      })
+        avatar_url: form.avatar,
+        nickname: form.nickname,
+        bio: form.bio,
+      } as any)
 
       if (response.data) {
         userStore.updateUser(response.data)
@@ -196,9 +239,11 @@ const handleSave = async () => {
 
 const handleReset = () => {
   if (user.value) {
-    form.username = user.value.username
-    form.email = user.value.email
-    form.avatar = user.value.avatar || ''
+    form.username = user.value.username || ''
+    form.email = user.value.email || ''
+    form.avatar = user.value.profile?.avatarUrl || user.value.avatar || ''
+    form.nickname = user.value.profile?.nickname || ''
+    form.bio = user.value.profile?.bio || ''
   }
   formRef.value?.clearValidate()
 }
